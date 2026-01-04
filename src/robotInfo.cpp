@@ -10,17 +10,21 @@ robotInfo::robotInfo(){
     std::vector<Eigen::Matrix4d> T = forwardKinematics(q);
 
     //The inertial information taken from the aldebaran documantation is wrt to an aldebaran frame at each joint
-    //Aldebaran frame at each joint coincides with the orientation of the world frame
+    //Aldebaran frame at each joint coincides with the orientation of the world frame when q=0
     //Algorithms suppose that inertial information is wrt joint frame
     //We need to change the inertial information to joint frame
     std::vector<Eigen::Matrix3d> Rj; //Rotation matrix of each frame
     Rj.resize(getNumFrames());
+    double mass = 0;
     for (int i=0; i< getNumFrames(); i++){
         Rj[i] = T[i].block(0,0,3,3); //jR0
         links[i].com = Rj[i].transpose()*links[i].com; //jR0*0p = jp
         links[i].inertia = Rj[i].transpose()*links[i].inertia*Rj[i]; //jR0*0I*0Rj = jI
+        mass += links[i].mass;
     }
     setLinks(links);
+    setMass(mass);
+    
     q = initialConfiguration();
     setJoints(q);
     T = forwardKinematics(q);
@@ -234,5 +238,16 @@ std::vector<Eigen::Matrix4d> robotInfo::matTrans(std::vector<double> theta){
     }
     
     return T;
+}
+
+Eigen::VectorXd robotInfo::desiredPosture(){
+    Eigen::VectorXd qDes = Eigen::VectorXd::Zero(getNumJoints());
+    qDes << -0.0185,0.00,0.282,0,0,0, //base
+            0,0,-0.5,0.8,-0.3,0, //right leg
+            0,0,-0.5,0.8,-0.3,0, //left leg
+            1.6,0,pi/2,0.4,0, //right arm
+            -1.6,0,-pi/2,0.4,0, //left arm
+            0,0; //head
+    return qDes;
 }
 

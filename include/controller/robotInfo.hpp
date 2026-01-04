@@ -22,19 +22,25 @@ public:
     Eigen::VectorXd getJoints() const {return q;}
     std::vector<Eigen::Matrix4d> getT() const {return T;} 
     std::vector<linkInertia> getLinks() const {return links;}
+    double getMass() const {return mass;}
     
     Eigen::VectorXd initialConfiguration();
     Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& eulerAngles);
     std::vector<Eigen::Matrix4d> forwardKinematics(Eigen::VectorXd q);
+    Eigen::VectorXd desiredPosture();
     
     void setJoints(const Eigen::VectorXd q_new){q = q_new;}
     void setT(const std::vector<Eigen::Matrix4d> T_new){T = T_new;}
     void setLinks(const std::vector<linkInertia> links_new){links = links_new;}
+    void setMass(const double mass_new){mass = mass_new;}
+
+    
 private:
     int numJoints = NUM_JOINTS;
     int numActualJoints = NUM_ACTUAL_JOINTS;
     int numFrames = NUM_FRAMES;
     int numBodies = NUM_BODIES;
+    double mass;
     Eigen::VectorXd q;
     std::vector<Eigen::Matrix4d> T;
     std::vector<Eigen::Matrix4d> matTrans(std::vector<double> theta);
