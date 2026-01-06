@@ -8,7 +8,7 @@ robotInfo::robotInfo(){
     links = createNaoParameters();
     Eigen::VectorXd q = Eigen::VectorXd::Zero(getNumJoints());
     std::vector<Eigen::Matrix4d> T = forwardKinematics(q);
-
+    
     //The inertial information taken from the aldebaran documantation is wrt to an aldebaran frame at each joint
     //Aldebaran frame at each joint coincides with the orientation of the world frame when q=0
     //Algorithms suppose that inertial information is wrt joint frame
@@ -27,7 +27,6 @@ robotInfo::robotInfo(){
     q = initialConfiguration();
     setJoints(q);
     T = forwardKinematics(q);
-    
     setT(T);
 
     Rf_q0 << 0,0,1, //Rotation matrix of right foot frame when q=0
@@ -61,34 +60,34 @@ std::vector<Eigen::Matrix4d> robotInfo::forwardKinematics(Eigen::VectorXd q){
     std::vector<double> theta;
     theta.resize(getNumActualJoints()); //theta is the Denavit Hartenberg parameter related with q
     
-    theta[0] = q(0);
-    theta[1] = q(1) + (3.0/4)*pi;
-    theta[2] = q(2);
-    theta[3] = q(3);
-    theta[4] = q(4);
-    theta[5] = q(5);
+    theta[0] = q(0 + BASEDOF);
+    theta[1] = q(1 + BASEDOF) + (3.0/4)*pi;
+    theta[2] = q(2 + BASEDOF);
+    theta[3] = q(3 + BASEDOF);
+    theta[4] = q(4 + BASEDOF);
+    theta[5] = q(5 + BASEDOF);
 
-    theta[6] = q(6) - (1.0/2)*pi;
-    theta[7] = q(7) + (1.0/4)*pi;
-    theta[8] = q(8);
-    theta[9] = q(9);
-    theta[10] = q(10);
-    theta[11] = q(11); 
+    theta[6] = q(6 + BASEDOF) - (1.0/2)*pi;
+    theta[7] = q(7 + BASEDOF) + (1.0/4)*pi;
+    theta[8] = q(8 + BASEDOF);
+    theta[9] = q(9 + BASEDOF);
+    theta[10] = q(10 + BASEDOF);
+    theta[11] = q(11 + BASEDOF); 
     
-    theta[12] = q(12);
-    theta[13] = q(13) + (1.0/2)*pi;
-    theta[14] = q(14);
-    theta[15] = q(15);
-    theta[16] = q(16);
+    theta[12] = q(12 + BASEDOF);
+    theta[13] = q(13 + BASEDOF) + (1.0/2)*pi;
+    theta[14] = q(14 + BASEDOF);
+    theta[15] = q(15 + BASEDOF);
+    theta[16] = q(16 + BASEDOF);
 
-    theta[17] = q(17);
-    theta[18] = q(18) + (1.0/2)*pi;
-    theta[19] = q(19);
-    theta[20] = q(20);
-    theta[21] = q(21);
+    theta[17] = q(17 + BASEDOF);
+    theta[18] = q(18 + BASEDOF) + (1.0/2)*pi;
+    theta[19] = q(19 + BASEDOF);
+    theta[20] = q(20 + BASEDOF);
+    theta[21] = q(21 + BASEDOF);
 
-    theta[22] = q(22);
-    theta[23] = q(23) - (1.0/2)*pi;
+    theta[22] = q(22 + BASEDOF);
+    theta[23] = q(23 + BASEDOF) - (1.0/2)*pi;
     theta[24] = -pi/2;
     std::vector<Eigen::Matrix4d> Temp = matTrans(theta); //Transformation matrix of each frame wrt its parent frame
 
@@ -122,6 +121,7 @@ std::vector<Eigen::Matrix4d> robotInfo::forwardKinematics(Eigen::VectorXd q){
 
     //=======================Forward kinematics right leg
     T[1] = T[0]*auxT01*Temp[0];
+    //std::cout << Temp[0] << std::endl;
     for(int i=1; i<6; i++){
         T[i+1] = T[ant[i]]*Temp[i]; 
     }
@@ -229,14 +229,17 @@ std::vector<Eigen::Matrix4d> robotInfo::matTrans(std::vector<double> theta){
         T[i](0,1) = -std::sin(theta[i]);
         T[i](0,2) = 0;
         T[i](0,3) = d[i];
+
         T[i](1,0) = std::cos(alpha[i])*std::sin(theta[i]);
         T[i](1,1) = std::cos(alpha[i])*std::cos(theta[i]);
         T[i](1,2) = -std::sin(alpha[i]);
         T[i](1,3) = -r[i]*std::sin(alpha[i]);
+
         T[i](2,0) = std::sin(alpha[i])*std::sin(theta[i]);
         T[i](2,1) = std::sin(alpha[i])*std::cos(theta[i]);
         T[i](2,2) = std::cos(alpha[i]);
         T[i](2,3) = r[i]*std::cos(alpha[i]);
+
         T[i](3,0) = 0;
         T[i](3,1) = 0;
         T[i](3,2) = 0;
@@ -265,7 +268,7 @@ Eigen::Vector3d robotInfo::getCoM(){
                                                      // a 4th dimention vector with a one at the end [com,1]
     std::vector<linkInertia> links = getLinks();
     for (int i=0;i<getNumFrames(); i++){
-        std::cout<< T[i] << std::endl;
+        //std::cout<< T[i] << std::endl;
         pComj4 << links[i].com,1.0; //com of each body wrt to body frame
         pComj = T[i].block(0,0,3,4)*pComj4; //com of each body wrt world frame
         com = com + links[i].mass*pComj; //com of full robot wrt world frame
