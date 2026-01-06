@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include "controller/robotInfo.hpp"
+#include "controller/generalizedFunctions.hpp"
 #include <cmath>
 
 //Operational space is composed by 
@@ -13,6 +14,7 @@ public:
     Eigen::VectorXd desiredOperationalState(robotInfo robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com); //
     Eigen::VectorXd compute(robotInfo robot, Eigen::VectorXd desOp);
     Eigen::VectorXd operationalState(robotInfo robot);
+    Eigen::MatrixXd feetJacobian(robotInfo robot);
 private:
 
 };

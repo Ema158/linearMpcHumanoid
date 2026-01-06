@@ -1,4 +1,5 @@
 #include "controller/invKinematics.hpp"
+#define BASEDOF 6
 
 Eigen::VectorXd invKinematics::desiredOperationalState(robotInfo robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com){
     Eigen::VectorXd Qd = Eigen::VectorXd::Zero(robot.getNumJoints());
@@ -9,12 +10,23 @@ Eigen::VectorXd invKinematics::desiredOperationalState(robotInfo robot, const Ei
     return Qd;
 }
 
-Eigen::VectorXd compute(robotInfo robot, Eigen::VectorXd desOp){
-    Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.getNumJoints());
+Eigen::VectorXd invKinematics::compute(robotInfo robot, Eigen::VectorXd desOp){
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.getNumJoints());//Joint vector
+    Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());//Actual operational variables
+    Eigen::VectorXd e = Eigen::VectorXd::Zero(robot.getNumJoints());//Error vector
+    Q = operationalState(robot);
+    e = desOp - Q;
+    double errorCriterion = e.cwiseAbs().maxCoeff(); //Absolute value of the max error in vector e
+    int iter = 0; //Iteration counter
+    int maxIter = 200; //Max number of iterations (solution not found)
+    double tolerance = 1e-10;
+    while(errorCriterion>tolerance&&iter<maxIter){ //Newton's method to solve Inverse Kinematics
+
+    }
     return q;
 }
 
-Eigen::VectorXd operationalState(robotInfo robot){
+Eigen::VectorXd invKinematics::operationalState(robotInfo robot){
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());
     std::vector<Eigen::Matrix4d> T = robot.getT();
     Eigen::VectorXd q = robot.getJoints(); 
@@ -37,6 +49,35 @@ Eigen::VectorXd operationalState(robotInfo robot){
     
     Q.segment(12,12) = q.segment(12,robot.getNumJoints()); //arms and head joints
     Q.segment(24,3) = q.segment(3,3);
-    //Q.segment(27,3) = robot.getCoM();
+    Q.segment(27,3) = robot.getCoM();
     return Q;
+}
+
+Eigen::MatrixXd feetJacobian(robotInfo robot){
+    int dof = robot.getNumJoints(); //number of degrees of freedom
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,dof); //The Jacobians (6xdof) of both feet into a single Jacobian (12xdof)
+    std::vector<int> ant = robot.parentFrame();
+    std::vector<int> act = robot.actuatedFrames();
+    std::vector<Eigen::Matrix4d> T = robot.getT(); //Transformation matrix od each frame wrt world (0Ti)
+    std::vector<Eigen::Matrix4d> piTi; //Transformation matrix of each frame wrt to its parent (piTi)
+    piTi.resize(robot.getNumFrames());
+    Eigen::VectorXd S = Eigen::VectorXd::Zero(6);
+    S << 0,0,1,0,0,0; //Unit vector about the rotation axis of each frame (in z bc DH notation)
+    std::vector<Eigen::MatrixXd> X; //Velocity matrix transformation of each frame wrt to its parent
+    X.resize(robot.getNumFrames());
+    std::vector<Eigen::Matrix4d> Xn; //Velocity transformation matrix of frame n (at the foot) wrt to each frame
+    
+    //To compute the Velocity matrix we need the transformation matrix of each frame wrt to its paren (piTi)
+    //We dont have this, we have 0Ti, so we need to obtain piTi = (piT0)*(0Ti)
+    X[0] = velocityMatrix(T[0]); //Frame 1 is already wrt to its parent 0T1
+    piTi[0] = T[0]; //Not used 
+    //For the rest, we need to transform before obtain the velocity matrix
+    for (int i=1;i<robot.getNumFrames();i++){
+        piTi[i] = inverseTransformationMatrix(T[ant[i]])*T[i];
+        X[i] = velocityMatrix(piTi[i]); 
+    }
+
+    //We have piXi, we need nXi (8Xi for right foot and 15Xi for left foot)
+    
+    return J;
 }
