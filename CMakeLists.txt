@@ -11,6 +11,7 @@ add_library(controller_core
     src/controller.cpp
     src/robotParameters.cpp
     src/robotInfo.cpp
+    src/invKinematics.cpp
 )
 
 target_include_directories(controller_core PUBLIC

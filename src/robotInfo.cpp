@@ -15,7 +15,7 @@ robotInfo::robotInfo(){
     //We need to change the inertial information to joint frame
     std::vector<Eigen::Matrix3d> Rj; //Rotation matrix of each frame
     Rj.resize(getNumFrames());
-    double mass = 0;
+    mass = 0;
     for (int i=0; i< getNumFrames(); i++){
         Rj[i] = T[i].block(0,0,3,3); //jR0
         links[i].com = Rj[i].transpose()*links[i].com; //jR0*0p = jp
@@ -23,19 +23,24 @@ robotInfo::robotInfo(){
         mass += links[i].mass;
     }
     setLinks(links);
-    setMass(mass);
     
     q = initialConfiguration();
     setJoints(q);
     T = forwardKinematics(q);
+    
     setT(T);
+
+    Rf_q0 << 0,0,1, //Rotation matrix of right foot frame when q=0
+             0,-1,0,
+             1,0,0;
+    Lf_q0 = Rf_q0; //Rotation matrix of left foot frame when q=0
 }
 
 Eigen::VectorXd robotInfo::initialConfiguration(){
     Eigen::VectorXd q = Eigen::VectorXd::Zero(30); //Initial configuration of the robot
-    q << 0, 0, -0.01, 0, 0, 0, //base position and orientation
-        0, 0, -1, 1.1, -0.1, 0, // right leg
-        0, 0, -0.4, 1.3, -0.9, 0, //left leg
+    q << -0.0185, 0, 0.282, 0, 0, 0, //base position and orientation
+        0, 0, -0.5, 0.8, -0.3, 0, // right leg
+        0, 0, -0.5, 0.8, -0.3, 0, //left leg
         1.6, 0, 0, 0, 0, //right arm
         -1.6, 0, 0, 0, 0, //left arm
         0,0; // head*/
@@ -47,12 +52,12 @@ std::vector<Eigen::Matrix4d> robotInfo::forwardKinematics(Eigen::VectorXd q){
     std::vector<Eigen::Matrix4d> T;
     T.resize(getNumFrames());
     std::vector<int> ant = parentFrame();
-    Eigen::Vector3d basePos = {q(0), q(1), q(2)}; //Cartesian coordinates of the base of the robot
+    Eigen::Vector3d basePos;
+    basePos << q(0), q(1), q(2); //Cartesian coordinates of the base of the robot
     Eigen::Vector3d baseAttitude = {q(3), q(4), q(5)}; //Base attitude in Euler angles
-    T[0].block(0,2,3,1) = basePos;
+    T[0].block(0,3,3,1) = basePos;
     T[0].block(0,0,3,3) = eulerAnglesToSO3(baseAttitude);
     T[0].block(3,0,1,4) << 0,0,0,1;
-
     std::vector<double> theta;
     theta.resize(getNumActualJoints()); //theta is the Denavit Hartenberg parameter related with q
     
@@ -155,6 +160,7 @@ std::vector<Eigen::Matrix4d> robotInfo::forwardKinematics(Eigen::VectorXd q){
     for(int i=25; i<27; i++){
       T[i+1] = T[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole  
     }
+        
     return T;
 }
 
@@ -249,5 +255,22 @@ Eigen::VectorXd robotInfo::desiredPosture(){
             -1.6,0,-pi/2,0.4,0, //left arm
             0,0; //head
     return qDes;
+}
+
+Eigen::Vector3d robotInfo::getCoM(){
+    Eigen::Vector3d com = Eigen::Vector3d::Zero(3);
+    std::vector<Eigen::Matrix4d> T = getT();
+    Eigen::Vector3d pComj; //Position of the center of mass of the jth body
+    Eigen::Vector4d pComj4 = Eigen::VectorXd::Zero(4); //Position of the center of mass of the jth body in homogenous coordinates 
+                                                     // a 4th dimention vector with a one at the end [com,1]
+    std::vector<linkInertia> links = getLinks();
+    for (int i=0;i<getNumFrames(); i++){
+        std::cout<< T[i] << std::endl;
+        pComj4 << links[i].com,1.0; //com of each body wrt to body frame
+        pComj = T[i].block(0,0,3,4)*pComj4; //com of each body wrt world frame
+        com = com + links[i].mass*pComj; //com of full robot wrt world frame
+    }
+    com = com/mass;
+    return com;
 }
 
