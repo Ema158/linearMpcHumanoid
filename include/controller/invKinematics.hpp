@@ -15,6 +15,8 @@ public:
     Eigen::VectorXd compute(robotInfo robot, Eigen::VectorXd desOp);
     Eigen::VectorXd operationalState(robotInfo robot);
     Eigen::MatrixXd feetJacobian(robotInfo robot);
+    Eigen::MatrixXd frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, robotInfo robot);
+    
 private:
-
+    
 };

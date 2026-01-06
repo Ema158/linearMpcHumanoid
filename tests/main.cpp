@@ -17,7 +17,9 @@ int main() {
     desCom << 0,0,0.26;
     std::vector<Eigen::Matrix4d> T = nao.getT();
     q = nao.getJoints();
-    std::cout<< nao.getCoM() << std::endl;
+    invKinematics invK;
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
+    J = invK.feetJacobian(nao);
     /*for (int i=0; i<nao.getNumFrames();i++){
         std::cout<< T[i] << std::endl;
     }*/

@@ -1,4 +1,5 @@
 #include "controller/invKinematics.hpp"
+#include <iostream>
 #define BASEDOF 6
 
 Eigen::VectorXd invKinematics::desiredOperationalState(robotInfo robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com){
@@ -53,7 +54,7 @@ Eigen::VectorXd invKinematics::operationalState(robotInfo robot){
     return Q;
 }
 
-Eigen::MatrixXd feetJacobian(robotInfo robot){
+Eigen::MatrixXd invKinematics::feetJacobian(robotInfo robot){
     int dof = robot.getNumJoints(); //number of degrees of freedom
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,dof); //The Jacobians (6xdof) of both feet into a single Jacobian (12xdof)
     std::vector<int> ant = robot.parentFrame();
@@ -67,7 +68,7 @@ Eigen::MatrixXd feetJacobian(robotInfo robot){
     X.resize(robot.getNumFrames());
     std::vector<Eigen::Matrix4d> Xn; //Velocity transformation matrix of frame n (at the foot) wrt to each frame
     
-    //To compute the Velocity matrix we need the transformation matrix of each frame wrt to its paren (piTi)
+    //To compute the Velocity matrix we need the transformation matrix of each frame wrt to its parent (piTi)
     //We dont have this, we have 0Ti, so we need to obtain piTi = (piT0)*(0Ti)
     X[0] = velocityMatrix(T[0]); //Frame 1 is already wrt to its parent 0T1
     piTi[0] = T[0]; //Not used 
@@ -78,6 +79,49 @@ Eigen::MatrixXd feetJacobian(robotInfo robot){
     }
 
     //We have piXi, we need nXi (8Xi for right foot and 15Xi for left foot)
+    Eigen::MatrixXd JacR = frameJacobian(X,7,robot);
+    //std::cout<<JacR.block(0,0,6,12)<<std::endl<<std::endl;
+    //std::cout<<JacR.block(0,12,6,12)<<std::endl<<std::endl;
+    Eigen::MatrixXd JacL = frameJacobian(X,14,robot);
+    std::cout<<JacL.block(0,0,6,12)<<std::endl<<std::endl;
+    std::cout<<JacL.block(0,12,6,12)<<std::endl<<std::endl;
+    return J;
+}
+
+Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, robotInfo robot){
+    std::vector<Eigen::MatrixXd> Xn; //Velocity transformation matrix of frame n (at the foot) wrt to each frame
+    std::vector<Eigen::MatrixXd> X_new; //subVector of X that only contain the kinematic chaain from base to frame n
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(6,30);
+    Eigen::VectorXd S = Eigen::VectorXd::Zero(6);
+    S << 0,0,1,0,0,0; //Unit vector about the rotation axis of each frame (in z bc DH notation)
+    std::vector<int> ant = robot.parentFrame();
+    std::vector<int> act = robot.actuatedFrames();
+    int numFrame = 1; //number of frames from the base to the end effector
+    int i=frame;
+    while(ant[i]>0){
+        numFrame++;
+        i--;
+    }
+    Xn.resize(numFrame);
+    int j=0;
+    for(int i=numFrame;i<0;i--){
+        Xn[i] = Eigen::MatrixXd::Zero(6,6);
+        X_new[i] = X[frame-j];
+        j--;
+    }
+    Xn[numFrame-1] = X_new[numFrame];
+    //std::cout << Xn[frame-1] << std::endl;
+    i = numFrame-1; 
+    do{
+        J.block(0,act[i]+BASEDOF-1,6,1) = Xn[i]*S;
+        //std::cout<<J.block(0,act[i]+BASEDOF-1,6,1)<<std::endl << std::endl;
+        Xn[ant[i]] = Xn[i]*X[i];
+        //std::cout << i << std::endl << Xn[ant[i]] << std::endl << std::endl;
+        i--;
+        
+        //
+    }while(ant[i+1]>0);
+    J.block(0,0,6,6) = Xn[0] * Eigen::Matrix<double, 6, 6>::Identity();
     
     return J;
 }
