@@ -76,6 +76,7 @@ Eigen::MatrixXd invKinematics::feetJacobian(robotInfo robot){
     for (int i=1;i<robot.getNumFrames();i++){
         piTi[i] = inverseTransformationMatrix(T[ant[i]])*T[i];
         X[i] = velocityMatrix(piTi[i]); 
+        //std::cout << X[i] << std::endl;
     }
 
     //We have piXi, we need nXi (8Xi for right foot and 15Xi for left foot)
@@ -83,8 +84,8 @@ Eigen::MatrixXd invKinematics::feetJacobian(robotInfo robot){
     //std::cout<<JacR.block(0,0,6,12)<<std::endl<<std::endl;
     //std::cout<<JacR.block(0,12,6,12)<<std::endl<<std::endl;
     Eigen::MatrixXd JacL = frameJacobian(X,14,robot);
-    std::cout<<JacL.block(0,0,6,12)<<std::endl<<std::endl;
-    std::cout<<JacL.block(0,12,6,12)<<std::endl<<std::endl;
+    //std::cout<<JacL.block(0,0,6,12)<<std::endl<<std::endl;
+    //std::cout<<JacL.block(0,12,6,12)<<std::endl<<std::endl;
     return J;
 }
 
@@ -103,25 +104,30 @@ Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int
         i--;
     }
     Xn.resize(numFrame);
+    //Xn[numFrame-1] = Eigen::MatrixXd::Zero(6,6);
+    //std::cout<<Xn[numFrame-1]<<std::endl;
+    X_new.resize(numFrame);
     int j=0;
-    for(int i=numFrame;i<0;i--){
+    for(int i=numFrame-1;i>=0;i--){  
         Xn[i] = Eigen::MatrixXd::Zero(6,6);
         X_new[i] = X[frame-j];
-        j--;
+        j++;
+        //std::cout<< X_new[i] << std::endl << std::endl;
     }
-    Xn[numFrame-1] = X_new[numFrame];
-    //std::cout << Xn[frame-1] << std::endl;
+    Xn[numFrame-1] = X_new[numFrame-1];
+    //std::cout << Xn[numFrame-1] << std::endl;
     i = numFrame-1; 
+    j = frame-1;
     do{
-        J.block(0,act[i]+BASEDOF-1,6,1) = Xn[i]*S;
+        J.block(0,act[j]+BASEDOF-1,6,1) = Xn[i]*S;
         //std::cout<<J.block(0,act[i]+BASEDOF-1,6,1)<<std::endl << std::endl;
-        Xn[ant[i]] = Xn[i]*X[i];
+        Xn[ant[i]] = Xn[i]*X_new[i-1];
         //std::cout << i << std::endl << Xn[ant[i]] << std::endl << std::endl;
         i--;
-        
+        j--;
         //
     }while(ant[i+1]>0);
-    J.block(0,0,6,6) = Xn[0] * Eigen::Matrix<double, 6, 6>::Identity();
+    J.block(0,0,6,6) = Xn[0] * Eigen::Matrix<double, 6, 6>::Identity(); //Frame 1 is a 6 dof joint
     
     return J;
 }
