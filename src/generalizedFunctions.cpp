@@ -33,3 +33,9 @@ Eigen::MatrixXd spatialCrossMatrix(Eigen::VectorXd v){
     m.block(3,3,3,3) = crossMatrix(v.segment(0,3));
     return m;
 }
+
+Eigen::MatrixXd spatialCrossMatrixForce(Eigen::VectorXd v){
+    Eigen::MatrixXd f = Eigen::MatrixXd::Zero(6,6);
+    f = -spatialCrossMatrix(v).transpose();
+    return f;
+}

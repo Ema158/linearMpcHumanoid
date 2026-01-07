@@ -9,4 +9,7 @@ Eigen::MatrixXd velocityMatrix(Eigen::Matrix4d T); //given a transformation matr
 Eigen::Matrix4d inverseTransformationMatrix(Eigen::Matrix4d T);//Computes the inverse of a 4x4 transformation matrix  
 
 Eigen::MatrixXd spatialCrossMatrix(Eigen::VectorXd v);//given a 6x1 spatial velocity
-                                                     //computes the 6x6 matrix equal to the spatial cross product
+                                                     //computes the 6x6 matrix equal to the velocity spatial cross product
+
+Eigen::MatrixXd spatialCrossMatrixForce(Eigen::VectorXd v);//given a 6x1 spatial velocity
+                                                       //computes the 6x6 matrix equal to the force spatial cross product                                                    

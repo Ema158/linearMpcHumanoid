@@ -20,8 +20,6 @@ int main() {
     invKinematics invK;
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
     J = invK.feetJacobian(nao);
-    /*for (int i=0; i<nao.getNumFrames();i++){
-        std::cout<< T[i] << std::endl;
-    }*/
+
     return 0;
 }

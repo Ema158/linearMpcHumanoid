@@ -20,6 +20,7 @@ public:
     int getNumActualJoints() const {return numActualJoints;}
     int getNumBodies() const {return numBodies;}
     Eigen::VectorXd getJoints() const {return q;}
+    Eigen::VectorXd getJointsVel() const {return v;}
     std::vector<Eigen::Matrix4d> getT() const {return T;} 
     std::vector<linkInertia> getLinks() const {return links;}
     
@@ -29,6 +30,7 @@ public:
     Eigen::VectorXd desiredPosture();
     
     void setJoints(const Eigen::VectorXd q_new){q = q_new;}
+    void setVelocities(const Eigen::VectorXd v_new){v = v_new;}
     void setT(const std::vector<Eigen::Matrix4d> T_new){T = T_new;}
     void setLinks(const std::vector<linkInertia> links_new){links = links_new;}
 
@@ -43,7 +45,8 @@ private:
     int numActualJoints = NUM_ACTUAL_JOINTS;
     int numFrames = NUM_FRAMES;
     int numBodies = NUM_BODIES;
-    Eigen::VectorXd q;
+    Eigen::VectorXd q; //Generalized coordinates
+    Eigen::VectorXd v; //Generalized velocities (note v \neq dot{q})
     std::vector<Eigen::Matrix4d> T;
     std::vector<Eigen::Matrix4d> matTrans(std::vector<double> theta);
     std::vector<linkInertia> links;

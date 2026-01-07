@@ -81,11 +81,25 @@ Eigen::MatrixXd invKinematics::feetJacobian(robotInfo robot){
 
     //We have piXi, we need nXi (8Xi for right foot and 15Xi for left foot)
     Eigen::MatrixXd JacR = frameJacobian(X,7,robot);
-    //std::cout<<JacR.block(0,0,6,12)<<std::endl<<std::endl;
-    //std::cout<<JacR.block(0,12,6,12)<<std::endl<<std::endl;
+    
     Eigen::MatrixXd JacL = frameJacobian(X,14,robot);
-    //std::cout<<JacL.block(0,0,6,12)<<std::endl<<std::endl;
-    //std::cout<<JacL.block(0,12,6,12)<<std::endl<<std::endl;
+    
+
+    //Jacobians are wrt the local frame of the foot, they need to be rotated wrt world frame
+    Eigen::MatrixXd R07 = Eigen::MatrixXd::Zero(6,6);
+    R07.block(0,0,3,3) = T[7].block(0,0,3,3);
+    R07.block(3,3,3,3) = T[7].block(0,0,3,3);
+    JacR = R07*JacR;
+    
+
+    Eigen::MatrixXd R014 = Eigen::MatrixXd::Zero(6,6);
+    R014.block(0,0,3,3) = T[14].block(0,0,3,3);
+    R014.block(3,3,3,3) = T[14].block(0,0,3,3);
+    JacL = R014*JacL;
+    //The complete Jacobian is the concatenation of the Jacobians of each foot
+    J.block(0,0,6,dof) = JacR;
+    J.block(6,0,6,dof) = JacL;
+    
     return J;
 }
 
@@ -129,5 +143,11 @@ Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int
     }while(ant[i+1]>0);
     J.block(0,0,6,6) = Xn[0] * Eigen::Matrix<double, 6, 6>::Identity(); //Frame 1 is a 6 dof joint
     
+    return J;
+}
+
+Eigen::MatrixXd invKinematics::jacInvKinematics(robotInfo robot){
+    int dof = robot.getNumJoints();
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(dof,dof);
     return J;
 }
