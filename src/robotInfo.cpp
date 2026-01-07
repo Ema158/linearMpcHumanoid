@@ -28,6 +28,10 @@ robotInfo::robotInfo(){
     setJoints(q);
     T = forwardKinematics(q);
     setT(T);
+    piTi = parentTransMatrix(T);
+    set_piTi(piTi);
+    X = allVelocityMatrices(piTi);
+    setX(X);
 
     Rf_q0 << 0,0,1, //Rotation matrix of right foot frame when q=0
              0,-1,0,
@@ -289,3 +293,24 @@ Eigen::Vector3d robotInfo::getCoM(){
     return com;
 }
 
+std::vector<Eigen::Matrix4d> robotInfo::parentTransMatrix(std::vector<Eigen::Matrix4d> T){
+    std::vector<Eigen::Matrix4d> piTi;
+    piTi.resize(getNumFrames());
+    std::vector<int> ant = parentFrame();
+    piTi[0] = T[0]; //Not used 
+    for (int i=1;i<getNumFrames();i++){
+        piTi[i] = inverseTransformationMatrix(T[ant[i]])*T[i];
+    }
+    return piTi;
+}
+
+std::vector<Eigen::MatrixXd> robotInfo::allVelocityMatrices(std::vector<Eigen::Matrix4d> piTi){
+    std::vector<Eigen::MatrixXd> X;
+    std::vector<int> act = actuatedFrames();
+    X.resize(getNumFrames());
+    X[0] = velocityMatrix(piTi[0]); //Velocity matrix of the base frame
+    for(int i=0;i<getNumFrames();i++){
+            X[i] = velocityMatrix(piTi[i]);
+    }
+    return X;
+}

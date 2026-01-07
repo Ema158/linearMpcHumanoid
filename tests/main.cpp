@@ -20,6 +20,9 @@ int main() {
     invKinematics invK;
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
     J = invK.feetJacobian(nao);
-
+    /*std::cout<<J.block(0,0,6,12) << std::endl << std::endl;
+    std::cout<<J.block(0,12,6,12) << std::endl << std::endl;
+    std::cout<<J.block(6,0,6,12) << std::endl << std::endl;
+    std::cout<<J.block(6,12,6,12) << std::endl << std::endl;*/
     return 0;
 }

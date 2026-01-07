@@ -4,6 +4,7 @@
 #include <cmath>
 #include "linkInertia.hpp"
 #include "robotParameters.hpp"
+#include "generalizedFunctions.hpp"
 #define NUM_JOINTS 30 //24 real joints plus 6 of the floating base
 #define NUM_ACTUAL_JOINTS 24 // 24 rotational joints
 #define NUM_FRAMES 28 //1 for base, 24 for each joint, 2 extra feet, 1 extra head
@@ -22,17 +23,23 @@ public:
     Eigen::VectorXd getJoints() const {return q;}
     Eigen::VectorXd getJointsVel() const {return v;}
     std::vector<Eigen::Matrix4d> getT() const {return T;} 
+    std::vector<Eigen::Matrix4d> get_piTi() const {return piTi;}
+    std::vector<Eigen::MatrixXd> getX() const {return X;}
     std::vector<linkInertia> getLinks() const {return links;}
     
     Eigen::VectorXd initialConfiguration();
     Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& eulerAngles);
     std::vector<Eigen::Matrix4d> forwardKinematics(Eigen::VectorXd q);
+    std::vector<Eigen::Matrix4d> parentTransMatrix(std::vector<Eigen::Matrix4d> T);
+    std::vector<Eigen::MatrixXd> allVelocityMatrices(std::vector<Eigen::Matrix4d> piTi);
     Eigen::VectorXd desiredPosture();
     
     void setJoints(const Eigen::VectorXd q_new){q = q_new;}
     void setVelocities(const Eigen::VectorXd v_new){v = v_new;}
     void setT(const std::vector<Eigen::Matrix4d> T_new){T = T_new;}
+    void set_piTi(const std::vector<Eigen::Matrix4d> piTi_new){piTi = piTi_new;}
     void setLinks(const std::vector<linkInertia> links_new){links = links_new;}
+    void setX(const std::vector<Eigen::MatrixXd> X_new){X = X_new;}
 
     Eigen::Matrix3d Rf_q0; //Rotation matrix of right foot frame when q=0
     Eigen::Matrix3d Lf_q0; //Rotation matrix of left foot frame when q=0 
@@ -47,8 +54,9 @@ private:
     int numBodies = NUM_BODIES;
     Eigen::VectorXd q; //Generalized coordinates
     Eigen::VectorXd v; //Generalized velocities (note v \neq dot{q})
-    std::vector<Eigen::Matrix4d> T;
+    std::vector<Eigen::Matrix4d> T; //Transformation matrix of each frame wrt world frame
     std::vector<Eigen::Matrix4d> matTrans(std::vector<double> theta);
     std::vector<linkInertia> links;
-
+    std::vector<Eigen::Matrix4d> piTi; //Transformation matrix of each frame wrt to its parent
+    std::vector<Eigen::MatrixXd> X; //Velocity matrix of each frame wrt to its parent
 };

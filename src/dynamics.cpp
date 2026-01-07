@@ -9,19 +9,7 @@ Eigen::MatrixXd dynamics::spatialInertiaMatrix(linkInertia link){
     return I;
 }
 
-std::vector<Eigen::MatrixXd> dynamics::allVelocityMatrices(robotInfo robot){
-    std::vector<Eigen::Matrix4d> T = robot.getT();
-    std::vector<Eigen::MatrixXd> X;
-    std::vector<int> act = robot.actuatedFrames();
-    X.resize(robot.getNumFrames());
-    X[0] = velocityMatrix(T[0]); //Velocity matrix of the base frame
-    for(int i=0;i<robot.getNumFrames();i++){
-        if (act[i]!=0){ //Only compute the velocity transformation matrix of frames with actual joints
-            X[i] = velocityMatrix(T[i]);
-        }
-    }
-    return X;
-}
+
 
 std::vector<Eigen::MatrixXd> dynamics::allSpatialInertiaMatrices(std::vector<linkInertia> links, robotInfo robot){
     std::vector<Eigen::MatrixXd> I;
@@ -36,7 +24,10 @@ std::vector<Eigen::MatrixXd> dynamics::allSpatialInertiaMatrices(std::vector<lin
     return I;
 }
 
-Eigen::VectorXd dynamics::computeC(robotInfo robot, std::vector<Eigen::MatrixXd> X, std::vector<Eigen::MatrixXd> I){
+Eigen::VectorXd dynamics::computeC(robotInfo robot, std::vector<Eigen::MatrixXd> X, std::vector<Eigen::MatrixXd> I, bool isGravity){
    Eigen::VectorXd C = Eigen::VectorXd::Zero(robot.getNumJoints());
+   std::vector<int> act = robot.actuatedFrames();
+   std::vector<Eigen::Matrix4d> piTi = robot.get_piTi(); //Transformation matrices of each frame wrt to its parent
+   //This matrices are also compute for the Jacobians, later change code to compute once
    return C; 
 }
