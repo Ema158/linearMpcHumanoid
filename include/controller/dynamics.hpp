@@ -9,6 +9,7 @@ class dynamics{
 public:
     std::vector<Eigen::MatrixXd> allSpatialInertiaMatrices(robotInfo robot);
     Eigen::VectorXd computeC(robotInfo robot, std::vector<Eigen::MatrixXd> I, bool isGravity); //..
+    Eigen::MatrixXd computeM(robotInfo robot, std::vector<Eigen::MatrixXd> I);//Composite rigid body algorithm
 private:
     Eigen::MatrixXd spatialInertiaMatrix(linkInertia link); //compues the spatial inertia 6x6 matrix used in recursive algorithms
      

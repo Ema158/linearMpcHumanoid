@@ -30,6 +30,8 @@ int main() {
     std::cout<<J.block(6,12,6,12) << std::endl << std::endl;*/
 
     std::vector<Eigen::MatrixXd> I = dyn.allSpatialInertiaMatrices(nao);
-    Eigen::VectorXd C = dyn.computeC(nao,I,true);
+    //Eigen::VectorXd C = dyn.computeC(nao,I,true);
+    //std::cout<<C<<std::endl;
+    Eigen::MatrixXd M = dyn.computeM(nao,I);
     return 0;
 }

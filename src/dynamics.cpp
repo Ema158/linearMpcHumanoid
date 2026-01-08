@@ -50,26 +50,57 @@ Eigen::VectorXd dynamics::computeC(robotInfo robot, std::vector<Eigen::MatrixXd>
    vel[0] = qD.segment(0,6);
    acc[0] = X[0]*g; // transform the acc wrt world frame to wrt base frame 
    f[0] = I[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I[0]*vel[0];
-   //Forward pass Newton-Euler
-   //std::cout<<f[0]<<std::endl<<std::endl;    
+   //Forward pass Newton-Euler  
    for (int i=1;i<robot.getNumFrames();i++){
         if (act[i]!=0){
             vel[i] = X[i]*vel[ant[i]] + S*qD[act[i] + BASEDOF - 1];
             acc[i] = X[i]*acc[ant[i]] + spatialCrossMatrix(vel[i])*S*qD[act[i] + BASEDOF - 1];
             f[i] = I[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I[i]*vel[i];
-            //std::cout<<i<<std::endl<<f[i]<<std::endl<<std::endl;
         }
     }
     //Backward pass
-    //std::cout<<std::endl<<f[26]<<std::endl<<std::endl;
     for(int i=robot.getNumFrames()-1;i>0;i--){
-        //std::cout<<act[i]<<std::endl;
         if (act[i]!=0){
             C(act[i] + BASEDOF - 1) = (S.transpose())*f[i];
-            std::cout<<C(act[i] + BASEDOF - 1)<<std::endl;
-            f[ant[i]] = f[ant[i]] + X[i].transpose()*f[i];
-            
+            f[ant[i]] = f[ant[i]] + X[i].transpose()*f[i];          
         }
     }
+    C.segment(0,6) = f[0]; //Base joint is a 6x6 dof, thats why for base joint S = identity
    return C; 
+}
+
+Eigen::MatrixXd dynamics::computeM(robotInfo robot, std::vector<Eigen::MatrixXd> I){
+    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints()); //inertia Matrix floating base
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(robot.getNumActualJoints(),robot.getNumActualJoints()); //inertia Matrix actuated joints
+    std::vector<Eigen::MatrixXd> X = robot.getX(); // 
+    std::vector<int> act = robot.actuatedFrames();
+    std::vector<int> ant = robot.parentFrame();
+    Eigen::VectorXd S = Eigen::VectorXd::Zero(6); //axis joint 
+    S << 0,0,1,0,0,0; //It is assumed all joints are rotational joints that rotates around z axis
+    std::vector<Eigen::MatrixXd> Ic = I; //Ic is the vector of composed spatial inertias, 
+                                         //It is initialized as the spatial inertia of each body
+    std::vector<Eigen::VectorXd> f; //spatial force at each actuated frame
+    f.resize(robot.getNumFrames());
+    Eigen::MatrixXd F2 = Eigen::MatrixXd::Zero(robot.getNumActualJoints(),robot.getNumActualJoints());
+    //F2 is a block matrix of M
+    //F2 is the effect of each unit acc joint projected in the base frame 
+    int j=0;
+    for (int i=robot.getNumFrames()-1;i>=0;i--){
+        if (act[i]!=0){ //only considered actuated frames
+            Ic[ant[i]] = Ic[ant[i]] + X[i].transpose()*Ic[i]*X[i]; //computation of composite spatial inertias
+            f[i] = Ic[i]*S;//spatial force at current frame
+            H(act[i]-1,act[i]-1) = S.transpose()*f[i]; //torque of the joint in the current frame
+            //Now we need to project the spatial force at current frame into each frame of the current kimematic chain
+            j=i;
+            while(ant[j]!=0){ //while we dont reach the base
+                f[i] = X[j].transpose()*f[i]; //project the spatial force into each j frame
+                j = ant[j]; //go one frame back
+                H(act[j]-1,act[i]-1) = S.transpose()*f[i];// torque at frame j
+                H(act[i]-1,act[j]-1) = H(act[j]-1,act[i]-1); //symmetry in M matrix
+            }
+        }  
+    }
+    std::cout<<H.block(0,0,12,12)<<std::endl<<std::endl;
+    std::cout<<H.block(12,12,12,12)<<std::endl<<std::endl;
+    return M;
 }
