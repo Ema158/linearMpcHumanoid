@@ -98,9 +98,19 @@ Eigen::MatrixXd dynamics::computeM(robotInfo robot, std::vector<Eigen::MatrixXd>
                 H(act[j]-1,act[i]-1) = S.transpose()*f[i];// torque at frame j
                 H(act[i]-1,act[j]-1) = H(act[j]-1,act[i]-1); //symmetry in M matrix
             }
+            F2.block(0,act[i]-1,6,1) = X[j].transpose()*f[i]; //project spatial force at frame i into base frame
+                                                        //here S=identity beacause base frame is a 6 dof virtual joint
         }  
     }
-    std::cout<<H.block(0,0,12,12)<<std::endl<<std::endl;
-    std::cout<<H.block(12,12,12,12)<<std::endl<<std::endl;
+    //std::cout<<H.block(0,0,12,12)<<std::endl<<std::endl;
+    //std::cout<<H.block(12,12,12,12)<<std::endl<<std::endl;
+
+    //std::cout<<F2.block(0,0,6,12)<<std::endl<<std::endl;
+    //std::cout<<F2.block(0,12,6,12)<<std::endl<<std::endl;
+
+    M.block(0,0,6,6) = Ic[0];
+    M.block(BASEDOF,BASEDOF,robot.getNumActualJoints(),robot.getNumActualJoints()) = H;
+    M.block(0,BASEDOF,6,robot.getNumActualJoints()) = F2;
+    M.block(BASEDOF,0,robot.getNumActualJoints(),6) = F2.transpose();
     return M;
 }
