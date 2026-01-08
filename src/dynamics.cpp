@@ -46,19 +46,30 @@ Eigen::VectorXd dynamics::computeC(robotInfo robot, std::vector<Eigen::MatrixXd>
    std::vector<Eigen::VectorXd> f; //spatial force of each frame
    f.resize(robot.getNumFrames());
 
-   //Base velocity
-   
+   //Base velocity and spatial force
    vel[0] = qD.segment(0,6);
    acc[0] = X[0]*g; // transform the acc wrt world frame to wrt base frame 
+   f[0] = I[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I[0]*vel[0];
    //Forward pass Newton-Euler
-   std::cout<<vel[0]<<std::endl<<std::endl;    
+   //std::cout<<f[0]<<std::endl<<std::endl;    
    for (int i=1;i<robot.getNumFrames();i++){
-    if (act[i]!=0){
-        vel[i] = X[i]*vel[ant[i]] + S*qD[act[i] + BASEDOF - 1];
-        //acc[i] = X[i]*acc[ant[i]] + spatialCrossMatrix(vel[i])*S*qD[act[i] + BASEDOF];
-        //f[i] = I[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I[i]*vel[i];
-        std::cout<<i<<std::endl<<vel[i]<<std::endl<<std::endl;
+        if (act[i]!=0){
+            vel[i] = X[i]*vel[ant[i]] + S*qD[act[i] + BASEDOF - 1];
+            acc[i] = X[i]*acc[ant[i]] + spatialCrossMatrix(vel[i])*S*qD[act[i] + BASEDOF - 1];
+            f[i] = I[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I[i]*vel[i];
+            //std::cout<<i<<std::endl<<f[i]<<std::endl<<std::endl;
+        }
     }
-   }
+    //Backward pass
+    //std::cout<<std::endl<<f[26]<<std::endl<<std::endl;
+    for(int i=robot.getNumFrames()-1;i>0;i--){
+        //std::cout<<act[i]<<std::endl;
+        if (act[i]!=0){
+            C(act[i] + BASEDOF - 1) = (S.transpose())*f[i];
+            std::cout<<C(act[i] + BASEDOF - 1)<<std::endl;
+            f[ant[i]] = f[ant[i]] + X[i].transpose()*f[i];
+            
+        }
+    }
    return C; 
 }
