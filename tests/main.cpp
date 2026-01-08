@@ -33,10 +33,10 @@ int main() {
     //Eigen::VectorXd C = dyn.computeC(nao,I,true);
     //std::cout<<C<<std::endl;
     Eigen::MatrixXd M = dyn.computeM(nao,I);
-    //Eigen::MatrixXd AG = dyn.centroidalMatrix(M,nao);
+    Eigen::MatrixXd AG = dyn.centroidalMatrix(M,nao);
 
-    //std::cout<<AG.block(0,0,6,12)<<std::endl<<std::endl;
-    //std::cout<<AG.block(0,12,6,12)<<std::endl<<std::endl;
-    //std::cout<<AG.block(0,18,6,6)<<std::endl<<std::endl;
+    std::cout<<AG.block(0,0,6,12)<<std::endl<<std::endl;
+    std::cout<<AG.block(0,12,6,12)<<std::endl<<std::endl;
+    std::cout<<AG.block(0,24,6,6)<<std::endl<<std::endl;
     return 0;
 }
