@@ -37,6 +37,8 @@ robotInfo::robotInfo(){
              0,-1,0,
              1,0,0;
     Lf_q0 = Rf_q0; //Rotation matrix of left foot frame when q=0
+
+    v = Eigen::VectorXd::Zero(getNumJoints());
 }
 
 Eigen::VectorXd robotInfo::initialConfiguration(){

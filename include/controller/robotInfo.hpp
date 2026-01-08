@@ -21,7 +21,7 @@ public:
     int getNumActualJoints() const {return numActualJoints;}
     int getNumBodies() const {return numBodies;}
     Eigen::VectorXd getJoints() const {return q;}
-    Eigen::VectorXd getJointsVel() const {return v;}
+    Eigen::VectorXd getJointsVelocity() const {return v;}
     std::vector<Eigen::Matrix4d> getT() const {return T;} 
     std::vector<Eigen::Matrix4d> get_piTi() const {return piTi;}
     std::vector<Eigen::MatrixXd> getX() const {return X;}
