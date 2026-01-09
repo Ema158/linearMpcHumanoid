@@ -22,7 +22,7 @@ int main() {
     q = nao.getJoints();
     
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
-    J = invK.feetJacobian(nao);
+    J = invK.jacInvKinematics(nao);
 
     /*std::cout<<J.block(0,0,6,12) << std::endl << std::endl;
     std::cout<<J.block(0,12,6,12) << std::endl << std::endl;
@@ -38,10 +38,10 @@ int main() {
     //std::cout<<AG.block(0,0,6,12)<<std::endl<<std::endl;
     //std::cout<<AG.block(0,12,6,12)<<std::endl<<std::endl;
     //std::cout<<AG.block(0,24,6,6)<<std::endl<<std::endl;
-    Eigen::MatrixXd Jcom = invK.comJacobian(nao);
+    /*Eigen::MatrixXd Jcom = invK.comJacobian(nao);
     std::cout<<Jcom.block(0,0,3,12)<<std::endl<<std::endl;
     std::cout<<Jcom.block(0,12,3,12)<<std::endl<<std::endl;
-    std::cout<<Jcom.block(0,24,3,6)<<std::endl<<std::endl;
+    std::cout<<Jcom.block(0,24,3,6)<<std::endl<<std::endl;*/
 
     /*for(int i=0;i<nao.getNumFrames()-1;i++){
         std::cout<<i<<std::endl<<T[i]<<std::endl<<std::endl;

@@ -32,21 +32,10 @@ Eigen::VectorXd invKinematics::operationalState(robotInfo robot){
     std::vector<Eigen::Matrix4d> T = robot.getT();
     Eigen::VectorXd q = robot.getJoints(); 
     Q.segment(0,3) = T[7].block(0,3,3,1); //Position of the right foot
-    //The frame attached to the foot does not coincide when the inertial frame when q=0 (rotRF(q=0) =! identity)
-    //Then, if we want Roll,Pitch,Yaw angles of the foot wrt inertial frame, the rotation matrix of the foot...
-    //... must change such that when q=0 rotRF(q=0) = identity
-    Eigen::Matrix3d rotRF; //Rotation matrix of the right foot such that when q=0 rotRF(q=0) = identity
-    rotRF = T[7].block(0,0,3,3)*robot.Rf_q0;
-    Q(5) = std::atan2(rotRF(1,0),rotRF(0,0)); //Yaw Right foot
-    Q(4) = std::atan2(-rotRF(2,0),std::cos(Q(5))*rotRF(0,0)+std::sin(Q(5))*rotRF(1,0)); //Pitch right foot
-    Q(3) = std::atan2(std::sin(Q(5))*rotRF(0,2)-std::cos(Q(5))*rotRF(1,2),-std::sin(Q(5))*rotRF(0,1)+std::cos(Q(5))*rotRF(1,1)); //Roll right foot
-
+    Q.segment(3,3) = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.Rf_q0); //Euler angles right foot
+    
     Q.segment(6,3) = T[14].block(0,3,3,1); //Position of the left foot
-    Eigen::Matrix3d rotLF; //Rotation matrix of the left foot such that when q=0 rotRF(q=0) = identity
-    rotLF = T[14].block(0,0,3,3)*robot.Lf_q0;
-    Q(11) = std::atan2(rotLF(1,0),rotLF(0,0)); //Yaw Right foot
-    Q(10) = std::atan2(-rotLF(2,0),std::cos(Q(11))*rotLF(0,0)+std::sin(Q(11))*rotLF(1,0)); //Pitch right foot
-    Q(9) = std::atan2(std::sin(Q(11))*rotLF(0,2)-std::cos(Q(11))*rotLF(1,2),-std::sin(Q(11))*rotLF(0,1)+std::cos(Q(11))*rotLF(1,1));
+    Q.segment(9,3) = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.Lf_q0); //Euler angles left foot
     
     Q.segment(12,12) = q.segment(12,robot.getNumJoints()); //arms and head joints
     Q.segment(24,3) = q.segment(3,3);
@@ -121,8 +110,49 @@ Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int
 }
 
 Eigen::MatrixXd invKinematics::jacInvKinematics(robotInfo robot){
-    int dof = robot.getNumJoints();
-    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(dof,dof);
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints());
+    Eigen::MatrixXd Jf = feetJacobian(robot);//Jacobian matrix of feet using spatial notation
+    Eigen::VectorXd q = robot.getJoints();
+    Eigen::Vector3d eta = q.segment(3,3);
+    std::vector<Eigen::Matrix4d> T = robot.getT();
+
+    //The jacobian of feetJacobian() its different from the one that we need
+    //First in Jf the order of the velocity of the base is [angular velocity, linear velocity]
+    //We need to change the order to [linear velocity,angular velocity]   
+    //right foot
+    Eigen::MatrixXd temp = Jf.block(0,0,3,robot.getNumJoints());
+    Jf.block(0,0,3,robot.getNumJoints()) = Jf.block(3,0,3,robot.getNumJoints());
+    Jf.block(3,0,3,robot.getNumJoints()) = temp;
+    //left foot
+    temp = Jf.block(6,0,3,robot.getNumJoints());
+    Jf.block(6,0,3,robot.getNumJoints()) = Jf.block(9,0,3,robot.getNumJoints());
+    Jf.block(9,0,3,robot.getNumJoints()) = temp;
+    
+    //Now Jf was computed in function of the angular velocity of the base
+    //We need Jf in terms of the euler angles rate of change
+    Eigen::Matrix3d Omega = matrixAngularVelToEulerDot(eta);
+    //right foot
+    Jf.block(0,3,3,3) = Jf.block(0,3,3,3)*Omega.inverse();
+    Jf.block(3,3,3,3) = Jf.block(3,3,3,3)*Omega.inverse();
+    //left foot
+    Jf.block(6,3,3,3) = Jf.block(6,3,3,3)*Omega.inverse();
+    Jf.block(9,3,3,3) = Jf.block(9,3,3,3)*Omega.inverse();
+    
+    //Finally Jf was computed to (when multiply by the joints velocities) return the angular velocity of each foot
+    //We need that returns the rate of change of euler angles
+    //Right foot
+    Eigen::Vector3d etaFoot = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.Rf_q0);
+    //Eigen::Matrix3d OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
+    //Jf.block(3,3,3,3) = OmegaFoot*Jf.block(3,3,3,3);
+    //Left foot 
+    //etaFoot = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.Lf_q0);
+    //OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
+    //Jf.block(9,3,3,3) = OmegaFoot*Jf.block(9,3,3,3);
+    /*
+    std::cout<<Jf.block(0,0,6,12) << std::endl << std::endl;
+    std::cout<<Jf.block(0,12,6,12) << std::endl << std::endl;
+    std::cout<<Jf.block(6,0,6,12) << std::endl << std::endl;
+    std::cout<<Jf.block(6,12,6,12) << std::endl << std::endl;*/
     return J;
 }
 
@@ -169,4 +199,14 @@ Eigen::MatrixXd invKinematics::baseJacobian(Eigen::Vector3d pBase, Eigen::Vector
     J.block(0,0,3,3) = Eigen::Matrix3d::Identity();
     J.block(0,3,3,3) = crossMatrix(pBase-pFrame);
     return J;
+}
+
+Eigen::Vector3d invKinematics::rotMatrixToEulerAngles(Eigen::Matrix3d R, Eigen::Matrix3d refFrame){
+    Eigen::Vector3d eta = Eigen::Vector3d::Zero(3);
+    Eigen::Matrix3d newR = Eigen::Matrix3d::Zero(3,3);
+    newR = R*refFrame; //Change of reference of rotation matrix, such that when R=refFrame->newR=Identity->eta=0
+    eta(2) = std::atan2(newR(1,0),newR(0,0)); //Yaw Right foot
+    eta(1) = std::atan2(-newR(2,0),std::cos(eta(2))*newR(0,0)+std::sin(eta(2))*newR(1,0)); //Pitch right foot
+    eta(0) = std::atan2(std::sin(eta(2))*newR(0,2)-std::cos(eta(2))*newR(1,2),-std::sin(eta(2))*newR(0,1)+std::cos(eta(2))*newR(1,1)); //Roll right foot
+    return eta;
 }
