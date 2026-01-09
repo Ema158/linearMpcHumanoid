@@ -43,18 +43,18 @@ robotInfo::robotInfo(){
 
 Eigen::VectorXd robotInfo::initialConfiguration(){
     Eigen::VectorXd q = Eigen::VectorXd::Zero(30); //Initial configuration of the robot
-    /*q << -0.0185, 0, 0.282, 0, 0, 0, //base position and orientation
+    q << -0.0185, 0, 0.282, 0, 0, 0, //base position and orientation
         0, 0, -0.5, 0.8, -0.3, 0, // right leg
         0, 0, -0.5, 0.8, -0.3, 0, //left leg
         1.6, 0, 0, 0, 0, //right arm
         -1.6, 0, 0, 0, 0, //left arm
-        0,0; // head*/
-    q << -0.0084,-0.0340,0.2820,0,0,0,
+        0,0; // head
+    /*q << -0.0084,-0.0340,0.2820,0,0,0,
             0,0.1802,-0.4067,0.7142,-0.3076,-0.1802,
             0,0.2012,-0.6317,1.1463,-0.5146,-0.2012,
             1.6,0,0,0,0,
             -1.6,0,0,0,0,
-            0,0;
+            0,0;*/
     return q;
 }
 

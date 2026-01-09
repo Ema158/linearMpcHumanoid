@@ -39,3 +39,12 @@ Eigen::MatrixXd spatialCrossMatrixForce(Eigen::VectorXd v){
     f = -spatialCrossMatrix(v).transpose();
     return f;
 }
+
+Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d eta){
+    //eta = [roll,pitch,yaw]
+    Eigen::Matrix3d Omega = Eigen::Matrix3d::Zero(3,3);
+    Omega << std::cos(eta(2))/std::cos(eta(1)),  std::sin(eta(2))/std::cos(eta(1)), 0,
+                             -std::sin(eta(2)),                   std::cos(eta(2)), 0,
+              std::cos(eta(2))*std::tan(eta(1)), std::sin(eta(2))*std::tan(eta(1)), 1;
+    return Omega;
+}

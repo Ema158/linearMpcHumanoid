@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <cmath>
 
 Eigen::Matrix3d crossMatrix(Eigen::Vector3d v); //Convert a 3d vector into a skew symmetric matrix (cross product)
 
@@ -12,4 +13,7 @@ Eigen::MatrixXd spatialCrossMatrix(Eigen::VectorXd v);//given a 6x1 spatial velo
                                                      //computes the 6x6 matrix equal to the velocity spatial cross product
 
 Eigen::MatrixXd spatialCrossMatrixForce(Eigen::VectorXd v);//given a 6x1 spatial velocity
-                                                       //computes the 6x6 matrix equal to the force spatial cross product                                                    
+                                                       //computes the 6x6 matrix equal to the force spatial cross product  
+                                                       
+Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d w); //Transformation matrix that transform angular velocity...
+                                                              //to euler angles derivatives

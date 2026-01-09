@@ -125,3 +125,48 @@ Eigen::MatrixXd invKinematics::jacInvKinematics(robotInfo robot){
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(dof,dof);
     return J;
 }
+
+Eigen::MatrixXd invKinematics::comJacobian(robotInfo robot){
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(3,robot.getNumJoints()); //center of mass jacobian whole robot
+    Eigen::MatrixXd JX = Eigen::MatrixXd::Zero(3,robot.getNumJoints()); //jacobian of each center of mass  
+    Eigen::Vector3d pCom = Eigen::Vector3d::Zero(3); //vector of each com wrt to world frame
+    Eigen::VectorXd pComj4 = Eigen::VectorXd::Zero(4); //vector of each com wrt to local frame in homogeneous coord
+    std::vector<linkInertia> links = robot.getLinks();
+    std::vector<Eigen::Matrix4d> T = robot.getT();
+    std::vector<Eigen::Matrix3d> crossMatrices;
+    Eigen::VectorXd q = robot.getJoints();
+    Eigen::Vector3d eta = q.segment(3,3);
+    
+    std::vector<int> ant = robot.parentFrame();
+    std::vector<int> act = robot.actuatedFrames();
+    crossMatrices.resize(robot.getNumFrames());
+    for (int i=0;i<robot.getNumFrames()-1;i++){
+        crossMatrices[i] = crossMatrix(T[i].block(0,2,3,1));
+
+        if(links[i].mass!=0){
+            pComj4 << links[i].com,1.0;
+            pCom = T[i].block(0,0,3,4)*pComj4;
+            JX.block(0,0,3,6) = baseJacobian(T[0].block(0,3,3,1),pCom);
+            int j=i;
+            while(j!=0){
+                if(act[j]!=0){//only actuated frames
+                    JX.block(0,act[j]+BASEDOF-1,3,1) = crossMatrices[j]*(pCom-T[j].block(0,3,3,1));
+                }
+                j = ant[j];
+            }
+            J = J + links[i].mass*JX;
+            JX = Eigen::MatrixXd::Zero(3,robot.getNumJoints());
+        }
+    }
+    J = J/robot.mass;
+    Eigen::Matrix3d Omega = matrixAngularVelToEulerDot(eta);
+    J.block(0,3,3,3) = J.block(0,3,3,3)*Omega.inverse();
+    return J;
+}
+
+Eigen::MatrixXd invKinematics::baseJacobian(Eigen::Vector3d pBase, Eigen::Vector3d pFrame){
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(3,6);
+    J.block(0,0,3,3) = Eigen::Matrix3d::Identity();
+    J.block(0,3,3,3) = crossMatrix(pBase-pFrame);
+    return J;
+}
