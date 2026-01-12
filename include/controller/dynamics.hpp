@@ -5,17 +5,25 @@
 #include <Eigen/Dense>
 #include <vector>
 
-class dynamics{
-public:
-    std::vector<Eigen::MatrixXd> allSpatialInertiaMatrices(const Robot& robot);
-    Eigen::VectorXd computeC(const Robot& robot, const std::vector<Eigen::MatrixXd>& I, bool isGravity); //..computes the Coriolles,centrigula,gravitational force vector.
-                                                                                            //it is the forward Newton-Euler with vD=0
-    Eigen::MatrixXd computeM(const Robot& robot, const std::vector<Eigen::MatrixXd>& I);//Composite rigid body algorithm
-    Eigen::MatrixXd centroidalMatrix(const Eigen::MatrixXd& M, const Robot& robot); //computes the centroidal matrix of the centroidal model
-private:
-    Eigen::MatrixXd spatialInertiaMatrix(const linkInertia& link); //compues the spatial inertia 6x6 matrix used in recursive algorithms
-     
+namespace dyn{
+    std::vector<Eigen::MatrixXd> allSpatialInertiaMatrices(
+        const Robot& robot); //computes the spatial inertia 6x6 matrices of all frames
+
+    Eigen::VectorXd computeC(
+        const Robot& robot,
+        const std::vector<Eigen::MatrixXd>& I,
+        bool isGravity); //..computes the Coriolles,centrigula,gravitational force vector.
+        //it is the forward Newton-Euler with vD=0
+
+    Eigen::MatrixXd computeM(
+        const Robot& robot,
+        const std::vector<Eigen::MatrixXd>& I);//Composite rigid body algorithm
+
+    Eigen::MatrixXd centroidalMatrix(
+        const Eigen::MatrixXd& M,
+        const Robot& robot); //computes the centroidal matrix of the centroidal model
     
+    Eigen::MatrixXd spatialInertiaMatrix(
+        const linkInertia& link); //compues the spatial inertia 6x6 matrix of a fraame
     
-    
-};
+}

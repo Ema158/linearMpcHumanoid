@@ -18,7 +18,7 @@ Eigen::VectorXd ik::desiredOperationalState(
     return Qd;
 }
 
-Eigen::VectorXd ik::compute(
+void ik::compute(
     Robot& robot,
     const Eigen::VectorXd& desOp)
 {
@@ -26,10 +26,8 @@ Eigen::VectorXd ik::compute(
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());//Actual operational variables
     Eigen::VectorXd e = Eigen::VectorXd::Zero(robot.getNumJoints());//Error vector
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints());
-    Q = operationalState(robot);
-    
+    Q = operationalState(robot);  
     e = desOp - Q;
-    //std::cout<< e <<std::endl;
     double errorCriterion = e.cwiseAbs().maxCoeff(); //Absolute value of the max error in vector e
     int iter = 0; //Iteration counter
     int maxIter = 200; //Max number of iterations (solution not found)
@@ -40,10 +38,8 @@ Eigen::VectorXd ik::compute(
         robot.updateState(q);
         Q = operationalState(robot);
         e = desOp - Q;
-        //std::cout<< e <<std::endl;
         errorCriterion = e.cwiseAbs().maxCoeff();
     }
-    return q;
 }
 
 Eigen::VectorXd ik::operationalState(
@@ -183,11 +179,6 @@ Eigen::MatrixXd ik::jacInvKinematics(
     etaFoot = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.getLf_q0());
     OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
     Jf.block(9,3,3,3) = OmegaFoot*Jf.block(9,3,3,3);
-    
-    //std::cout<<Jf.block(0,0,6,12) << std::endl << std::endl;
-    //std::cout<<Jf.block(0,12,6,12) << std::endl << std::endl;
-    //std::cout<<Jf.block(6,0,6,12) << std::endl << std::endl;
-    //std::cout<<Jf.block(6,12,6,12) << std::endl << std::endl;
 
     J.block(0,0,12,robot.getNumJoints()) = Jf; //Jacobian of both feet
     J.block(12,12+BASEDOF,12,12) = Eigen::MatrixXd::Identity(12,12); //Jacobian for the arms and head joints is an identity

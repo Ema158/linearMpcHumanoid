@@ -16,7 +16,7 @@ namespace ik{
         const Eigen::VectorXd& Lf,
         const Eigen::Vector3d& com); //
 
-    Eigen::VectorXd compute(
+    void compute(
         Robot& robot,
         const Eigen::VectorXd& desOp);
 

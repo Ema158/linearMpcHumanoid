@@ -14,6 +14,7 @@ add_library(controller_core
     src/invKinematics.cpp
     src/generalizedFunctions.cpp
     src/dynamics.cpp
+    src/mpcLinearPendulum.cpp
 )
 
 target_include_directories(controller_core PUBLIC
