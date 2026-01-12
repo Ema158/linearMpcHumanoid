@@ -151,14 +151,14 @@ void Robot::forwardKinematics(){
         
 }
 
-std::vector<int> Robot::parentFrame() const{
+const std::vector<int> Robot::parentFrame() const{
     //base is the torso of the robot
     // i frames {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28}
     std::vector<int> p_i = {-1,0,1,2,3,4,5,6,0,8,9,10,11,12,13,0,15,16,17,18,0,20,21,22,23,0,25,26};
     return p_i;
 }
 
-std::vector<int> Robot::actuatedFrames() const{
+const std::vector<int> Robot::actuatedFrames() const{
     //base is the torso of the robot
     // i frames {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28}
     std::vector<int> a_i = {0,1,2,3,4,5,6,0,7,8,9,10,11,12,0,13,14,15,16,17,18,19,20,21,22,23,24,0};

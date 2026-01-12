@@ -4,15 +4,17 @@
 
 Eigen::VectorXd ik::desiredOperationalState(
     const Robot& robot,
-    const Eigen::VectorXd& Rf,
-    const Eigen::VectorXd& Lf,
+    const Eigen::VectorXd& Rf, //Position and orientation of the right foot
+    const Eigen::VectorXd& Lf, //Position and orientation of the left foot
     const Eigen::Vector3d& com)
 {
     Eigen::VectorXd Qd = Eigen::VectorXd::Zero(robot.getNumJoints());
     Eigen::VectorXd q = robot.getJoints();
     Qd.segment(0,6) = Rf;
     Qd.segment(6,6) = Lf;
-    Qd.segment(6,12) = q.segment(12,12);
+    Qd.segment(12,12) = q.segment(12 + BASEDOF,12);
+    Qd.segment(24,3) = Eigen::Vector3d::Zero();
+    Qd.segment(27,3) = com;
     return Qd;
 }
 
@@ -20,25 +22,27 @@ Eigen::VectorXd ik::compute(
     Robot& robot,
     const Eigen::VectorXd& desOp)
 {
-    Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.getNumJoints());//Joint vector
+    Eigen::VectorXd q = robot.getJoints();//Joint vector
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());//Actual operational variables
     Eigen::VectorXd e = Eigen::VectorXd::Zero(robot.getNumJoints());//Error vector
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints());
     Q = operationalState(robot);
+    
     e = desOp - Q;
+    //std::cout<< e <<std::endl;
     double errorCriterion = e.cwiseAbs().maxCoeff(); //Absolute value of the max error in vector e
     int iter = 0; //Iteration counter
     int maxIter = 200; //Max number of iterations (solution not found)
     double tolerance = 1e-10;
-    /*while(errorCriterion>tolerance&&iter<maxIter){ //Newton's method to solve Inverse Kinematics
+    while(errorCriterion>tolerance&&iter<maxIter){ //Newton's method to solve Inverse Kinematics
         J = jacInvKinematics(robot);
-        q = q + J.inverse()*e;
-        robot.setJoints(q);
-        robot.setT(forwardKinematics(robot.getJoints()));
+        q += J.colPivHouseholderQr().solve(e);
+        robot.updateState(q);
         Q = operationalState(robot);
         e = desOp - Q;
+        //std::cout<< e <<std::endl;
         errorCriterion = e.cwiseAbs().maxCoeff();
-    }*/
+    }
     return q;
 }
 
@@ -54,7 +58,7 @@ Eigen::VectorXd ik::operationalState(
     Q.segment(6,3) = T[14].block(0,3,3,1); //Position of the left foot
     Q.segment(9,3) = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.getLf_q0()); //Euler angles left foot
     
-    Q.segment(12,12) = q.segment(12,robot.getNumJoints()); //arms and head joints
+    Q.segment(12,12) = q.segment(12 + BASEDOF,12); //arms and head joints
     Q.segment(24,3) = q.segment(3,3);
     Q.segment(27,3) = robot.getCoM();
     return Q;

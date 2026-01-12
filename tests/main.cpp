@@ -8,16 +8,26 @@
 
 int main() {
     Robot nao;
+    Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);
+    Rf(1) = -0.05;
+    Eigen::VectorXd Lf = Eigen::VectorXd::Zero(6);
+    Lf(1) = 0.05;
+    Eigen::Vector3d com = Eigen::Vector3d::Zero();
+    com(2) = 0.26;
+    Eigen::VectorXd desOp = ik::desiredOperationalState(nao,Rf,Lf,com);
+    //std::cout<< desOp << std::endl;
+    Eigen::VectorXd q = ik::compute(nao, desOp);
+    std::cout<<q<<std::endl;
     //invKinematics invK;
     //dynamics dyn;
     
-    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
+    /*Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
     J = ik::jacInvKinematics(nao);
 
     std::cout<<J.block(0,0,6,12) << std::endl << std::endl;
     std::cout<<J.block(0,12,6,12) << std::endl << std::endl;
     std::cout<<J.block(6,0,6,12) << std::endl << std::endl;
-    std::cout<<J.block(6,12,6,12) << std::endl << std::endl;
+    std::cout<<J.block(6,12,6,12) << std::endl << std::endl;*/
 
     //std::vector<Eigen::MatrixXd> I = dyn.allSpatialInertiaMatrices(nao);
     //Eigen::VectorXd C = dyn.computeC(nao,I,true);

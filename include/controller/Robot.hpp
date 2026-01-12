@@ -13,34 +13,45 @@
 class Robot{
 public:
     Robot();
-    std::vector<int> parentFrame() const; // vector that contains the parent frame p(i) of each frame i
-    std::vector<int> actuatedFrames() const; //vector that contains a zero if the frame is not actuated and the number of the joint if it is actuated
+    const std::vector<int> parentFrame() const; // vector that contains the parent frame p(i) of each frame i
+    
+    const std::vector<int> actuatedFrames() const; //vector that contains a zero if the frame is not actuated and the number of the joint if it is actuated
     
     int getNumFrames() const {return numFrames;}
+    
     int getNumJoints() const {return numJoints;}
+    
     int getNumActualJoints() const {return numActualJoints;}
+    
     int getNumBodies() const {return numBodies;}
+    
     Eigen::VectorXd getJoints() const {return q_;}
+    
     Eigen::VectorXd getJointsVelocity() const {return v_;}
+    
     std::vector<Eigen::Matrix4d> getT() const {return T_;} 
+    
     std::vector<linkInertia> getLinks() const {return links_;}
+    
     Eigen::Vector3d getCoM() const {return CoM_;}
+    
     double getMass() const {return mass_;}
+    
     Eigen::Matrix3d getRf_q0() const {return Rf_q0_;}
+    
     Eigen::Matrix3d getLf_q0() const {return Lf_q0_;}
+    
     std::vector<Eigen::MatrixXd> getX() const {return X_;}
     
     void computeCoM();
+    
     void forwardKinematics();
     
-    void setVelocities(const Eigen::VectorXd v_new){v_ = v_new;}
     void updateState(const Eigen::VectorXd& q_new);
 
-    std::vector<Eigen::Matrix4d> parentTransMatrix(
-    const std::vector<Eigen::Matrix4d>& T);
+    std::vector<Eigen::Matrix4d> parentTransMatrix(const std::vector<Eigen::Matrix4d>& T);
 
-    void allVelocityMatrices(
-    const std::vector<Eigen::Matrix4d>& piTi);
+    void allVelocityMatrices(const std::vector<Eigen::Matrix4d>& piTi);
  
 private:
     int numJoints = NUM_JOINTS;
