@@ -1,9 +1,9 @@
-#include "controller/robotInfo.hpp"
+#include "controller/Robot.hpp"
 #include <iostream>
 #define BASEDOF 6
 constexpr double pi = 3.14159265358979323846;
 
-robotInfo::robotInfo(){
+Robot::Robot(){
     std::vector<linkInertia> links;
     links = createNaoParameters();
     Eigen::VectorXd q = Eigen::VectorXd::Zero(getNumJoints());
@@ -41,24 +41,7 @@ robotInfo::robotInfo(){
     v = Eigen::VectorXd::Zero(getNumJoints());
 }
 
-Eigen::VectorXd robotInfo::initialConfiguration(){
-    Eigen::VectorXd q = Eigen::VectorXd::Zero(30); //Initial configuration of the robot
-    q << -0.0185, 0, 0.282, 0, 0, 0, //base position and orientation
-        0, 0, -0.5, 0.8, -0.3, 0, // right leg
-        0, 0, -0.5, 0.8, -0.3, 0, //left leg
-        1.6, 0, 0, 0, 0, //right arm
-        -1.6, 0, 0, 0, 0, //left arm
-        0,0; // head
-    /*q << -0.0084,-0.0340,0.2820,0,0,0,
-            0,0.1802,-0.4067,0.7142,-0.3076,-0.1802,
-            0,0.2012,-0.6317,1.1463,-0.5146,-0.2012,
-            1.6,0,0,0,0,
-            -1.6,0,0,0,0,
-            0,0;*/
-    return q;
-}
-
-std::vector<Eigen::Matrix4d> robotInfo::forwardKinematics(Eigen::VectorXd q){
+std::vector<Eigen::Matrix4d> Robot::forwardKinematics(Eigen::VectorXd q){
 
     std::vector<Eigen::Matrix4d> T;
     T.resize(getNumFrames());
@@ -175,43 +158,23 @@ std::vector<Eigen::Matrix4d> robotInfo::forwardKinematics(Eigen::VectorXd q){
     return T;
 }
 
-std::vector<int> robotInfo::parentFrame(){
+std::vector<int> Robot::parentFrame() const{
     //base is the torso of the robot
     // i frames {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28}
     std::vector<int> p_i = {-1,0,1,2,3,4,5,6,0,8,9,10,11,12,13,0,15,16,17,18,0,20,21,22,23,0,25,26};
     return p_i;
 }
 
-std::vector<int> robotInfo::actuatedFrames(){
+std::vector<int> Robot::actuatedFrames() const{
     //base is the torso of the robot
     // i frames {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28}
     std::vector<int> a_i = {0,1,2,3,4,5,6,0,7,8,9,10,11,12,0,13,14,15,16,17,18,19,20,21,22,23,24,0};
     return a_i;
 }
 
-Eigen::Matrix3d robotInfo::eulerAnglesToSO3(const Eigen::Vector3d& rpy)
-{
-    const double roll  = rpy(0);
-    const double pitch = rpy(1);
-    const double yaw   = rpy(2);
 
-    const double cr = std::cos(roll);
-    const double sr = std::sin(roll);
-    const double cp = std::cos(pitch);
-    const double sp = std::sin(pitch);
-    const double cy = std::cos(yaw);
-    const double sy = std::sin(yaw);
 
-    Eigen::Matrix3d R;
-
-    R <<  cy * cp,  cy * sp * sr - sy * cr,  cy * sp * cr + sy * sr,
-          sy * cp,  sy * sp * sr + cy * cr,  sy * sp * cr - cy * sr,
-          -sp,      cp * sr,                 cp * cr;
-
-    return R;
-}
-
-std::vector<Eigen::Matrix4d> robotInfo::matTrans(std::vector<double> theta){
+std::vector<Eigen::Matrix4d> Robot::matTrans(std::vector<double> theta){
     std::vector<Eigen::Matrix4d> T;
     int N = getNumBodies(); // Number of frames
     T.resize(N);
@@ -260,25 +223,7 @@ std::vector<Eigen::Matrix4d> robotInfo::matTrans(std::vector<double> theta){
     return T;
 }
 
-Eigen::VectorXd robotInfo::desiredPosture(){
-    Eigen::VectorXd qDes = Eigen::VectorXd::Zero(getNumJoints());
-    /*qDes << -0.0185,0.00,0.282,0,0,0, //base
-            0,0,-0.5,0.8,-0.3,0, //right leg
-            0,0,-0.5,0.8,-0.3,0, //left leg
-            1.6,0,pi/2,0.4,0, //right arm
-            -1.6,0,-pi/2,0.4,0, //left arm
-            0,0; //head*/
-    qDes << -0.0084,-0.0340,0.2820,0,0,0,
-            0,0.1802,-0.4067,0.7142,-0.3076,-0.1802,
-            0,0.2012,-0.6317,1.1463,-0.5146,-0.2012,
-            1.6,0,0,0,0,
-            -1.6,0,0,0,0,
-            0,0;
-
-    return qDes;
-}
-
-Eigen::Vector3d robotInfo::getCoM(){
+Eigen::Vector3d Robot::getCoM(){
     Eigen::Vector3d com = Eigen::Vector3d::Zero(3);
     std::vector<Eigen::Matrix4d> T = getT();
     Eigen::Vector3d pComj; //Position of the center of mass of the jth body
@@ -295,7 +240,7 @@ Eigen::Vector3d robotInfo::getCoM(){
     return com;
 }
 
-std::vector<Eigen::Matrix4d> robotInfo::parentTransMatrix(std::vector<Eigen::Matrix4d> T){
+std::vector<Eigen::Matrix4d> Robot::parentTransMatrix(std::vector<Eigen::Matrix4d> T){
     std::vector<Eigen::Matrix4d> piTi;
     piTi.resize(getNumFrames());
     std::vector<int> ant = parentFrame();
@@ -306,7 +251,7 @@ std::vector<Eigen::Matrix4d> robotInfo::parentTransMatrix(std::vector<Eigen::Mat
     return piTi;
 }
 
-std::vector<Eigen::MatrixXd> robotInfo::allVelocityMatrices(std::vector<Eigen::Matrix4d> piTi){
+std::vector<Eigen::MatrixXd> Robot::allVelocityMatrices(std::vector<Eigen::Matrix4d> piTi){
     std::vector<Eigen::MatrixXd> X;
     std::vector<int> act = actuatedFrames();
     X.resize(getNumFrames());
@@ -315,4 +260,39 @@ std::vector<Eigen::MatrixXd> robotInfo::allVelocityMatrices(std::vector<Eigen::M
             X[i] = velocityMatrix(piTi[i]);
     }
     return X;
+}
+
+Eigen::VectorXd initialConfiguration(){
+    Eigen::VectorXd q = Eigen::VectorXd::Zero(30); //Initial configuration of the robot
+    q << -0.0185, 0, 0.282, 0, 0, 0, //base position and orientation
+        0, 0, -0.5, 0.8, -0.3, 0, // right leg
+        0, 0, -0.5, 0.8, -0.3, 0, //left leg
+        1.6, 0, 0, 0, 0, //right arm
+        -1.6, 0, 0, 0, 0, //left arm
+        0,0; // head
+    /*q << -0.0084,-0.0340,0.2820,0,0,0,
+            0,0.1802,-0.4067,0.7142,-0.3076,-0.1802,
+            0,0.2012,-0.6317,1.1463,-0.5146,-0.2012,
+            1.6,0,0,0,0,
+            -1.6,0,0,0,0,
+            0,0;*/
+    return q;
+}
+
+Eigen::VectorXd desiredPosture(){
+    Eigen::VectorXd qDes = Eigen::VectorXd::Zero(30);
+    /*qDes << -0.0185,0.00,0.282,0,0,0, //base
+            0,0,-0.5,0.8,-0.3,0, //right leg
+            0,0,-0.5,0.8,-0.3,0, //left leg
+            1.6,0,pi/2,0.4,0, //right arm
+            -1.6,0,-pi/2,0.4,0, //left arm
+            0,0; //head*/
+    qDes << -0.0084,-0.0340,0.2820,0,0,0,
+            0,0.1802,-0.4067,0.7142,-0.3076,-0.1802,
+            0,0.2012,-0.6317,1.1463,-0.5146,-0.2012,
+            1.6,0,0,0,0,
+            -1.6,0,0,0,0,
+            0,0;
+
+    return qDes;
 }

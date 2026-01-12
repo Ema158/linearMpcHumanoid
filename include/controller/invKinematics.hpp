@@ -1,6 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
-#include "controller/robotInfo.hpp"
+#include "controller/Robot.hpp"
 #include "controller/generalizedFunctions.hpp"
 #include <cmath>
 
@@ -11,13 +11,13 @@
 // Position of the center of mass (3)
 class invKinematics{
 public:
-    Eigen::VectorXd desiredOperationalState(robotInfo robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com); //
-    Eigen::VectorXd compute(robotInfo robot, Eigen::VectorXd desOp);
-    Eigen::VectorXd operationalState(robotInfo robot);
-    Eigen::MatrixXd feetJacobian(robotInfo robot);
-    Eigen::MatrixXd frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, robotInfo robot);
-    Eigen::MatrixXd comJacobian(robotInfo robot);
-    Eigen::MatrixXd jacInvKinematics(robotInfo robot);
+    Eigen::VectorXd desiredOperationalState(Robot robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com); //
+    Eigen::VectorXd compute(Robot robot, Eigen::VectorXd desOp);
+    Eigen::VectorXd operationalState(Robot robot);
+    Eigen::MatrixXd feetJacobian(Robot robot);
+    Eigen::MatrixXd frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, Robot robot);
+    Eigen::MatrixXd comJacobian(Robot robot);
+    Eigen::MatrixXd jacInvKinematics(Robot robot);
 private:
     
     Eigen::MatrixXd baseJacobian(Eigen::Vector3d pBase, Eigen::Vector3d pFrame);

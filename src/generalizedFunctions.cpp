@@ -48,3 +48,25 @@ Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d eta){
               std::cos(eta(2))*std::tan(eta(1)), std::sin(eta(2))*std::tan(eta(1)), 1;
     return Omega;
 }
+
+Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& rpy)
+{
+    const double roll  = rpy(0);
+    const double pitch = rpy(1);
+    const double yaw   = rpy(2);
+
+    const double cr = std::cos(roll);
+    const double sr = std::sin(roll);
+    const double cp = std::cos(pitch);
+    const double sp = std::sin(pitch);
+    const double cy = std::cos(yaw);
+    const double sy = std::sin(yaw);
+
+    Eigen::Matrix3d R;
+
+    R <<  cy * cp,  cy * sp * sr - sy * cr,  cy * sp * cr + sy * sr,
+          sy * cp,  sy * sp * sr + cy * cr,  sy * sp * cr - cy * sr,
+          -sp,      cp * sr,                 cp * cr;
+
+    return R;
+}

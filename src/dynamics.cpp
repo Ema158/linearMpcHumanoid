@@ -2,7 +2,7 @@
 #include <iostream>
 #define BASEDOF 6
 
-Eigen::MatrixXd dynamics::spatialInertiaMatrix(linkInertia link){
+Eigen::MatrixXd dynamics::spatialInertiaMatrix(const linkInertia& link){
     Eigen::MatrixXd I = Eigen::MatrixXd::Zero(6,6);
     I.block(0,0,3,3) = link.inertia - link.mass*crossMatrix(link.com)*crossMatrix(link.com);
     I.block(0,3,3,3) = link.mass*crossMatrix(link.com);
@@ -11,7 +11,7 @@ Eigen::MatrixXd dynamics::spatialInertiaMatrix(linkInertia link){
     return I;
 }
 
-std::vector<Eigen::MatrixXd> dynamics::allSpatialInertiaMatrices(robotInfo robot){
+std::vector<Eigen::MatrixXd> dynamics::allSpatialInertiaMatrices(const Robot& robot){
     std::vector<linkInertia> links = robot.getLinks();
     std::vector<Eigen::MatrixXd> I;
     std::vector<int> act = robot.actuatedFrames();
@@ -26,7 +26,7 @@ std::vector<Eigen::MatrixXd> dynamics::allSpatialInertiaMatrices(robotInfo robot
     return I;
 }
 
-Eigen::VectorXd dynamics::computeC(robotInfo robot, std::vector<Eigen::MatrixXd> I, bool isGravity){
+Eigen::VectorXd dynamics::computeC(const Robot& robot, const std::vector<Eigen::MatrixXd>& I, bool isGravity){
    Eigen::VectorXd C = Eigen::VectorXd::Zero(robot.getNumJoints());
    Eigen::VectorXd g = Eigen::VectorXd::Zero(6); //gravity acc of the base wrt to world frame
    g(5) = isGravity*9.81;
@@ -69,7 +69,7 @@ Eigen::VectorXd dynamics::computeC(robotInfo robot, std::vector<Eigen::MatrixXd>
    return C; 
 }
 
-Eigen::MatrixXd dynamics::computeM(robotInfo robot, std::vector<Eigen::MatrixXd> I){
+Eigen::MatrixXd dynamics::computeM(const Robot& robot, const std::vector<Eigen::MatrixXd>& I){
     Eigen::MatrixXd M = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints()); //inertia Matrix floating base
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(robot.getNumActualJoints(),robot.getNumActualJoints()); //inertia Matrix actuated joints
     std::vector<Eigen::MatrixXd> X = robot.getX(); // 
@@ -109,7 +109,7 @@ Eigen::MatrixXd dynamics::computeM(robotInfo robot, std::vector<Eigen::MatrixXd>
     return M;
 }
 
-Eigen::MatrixXd dynamics::centroidalMatrix(Eigen::MatrixXd M, robotInfo robot){
+Eigen::MatrixXd dynamics::centroidalMatrix(const Eigen::MatrixXd& M, const Robot& robot){
     Eigen::MatrixXd AG = Eigen::MatrixXd(6,robot.getNumJoints()); //6 for linear and angular momentum of the com
     Eigen::MatrixXd T01 = robot.getT()[0];
     Eigen::MatrixXd Ic1 = M.block(0,0,6,6); //composed spatial inertia matrix of the base

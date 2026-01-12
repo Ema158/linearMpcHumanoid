@@ -2,7 +2,7 @@
 #include <iostream>
 #define BASEDOF 6
 
-Eigen::VectorXd invKinematics::desiredOperationalState(robotInfo robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com){
+Eigen::VectorXd invKinematics::desiredOperationalState(Robot robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com){
     Eigen::VectorXd Qd = Eigen::VectorXd::Zero(robot.getNumJoints());
     Eigen::VectorXd q = robot.getJoints();
     Qd.segment(0,6) = Rf;
@@ -11,23 +11,30 @@ Eigen::VectorXd invKinematics::desiredOperationalState(robotInfo robot, const Ei
     return Qd;
 }
 
-Eigen::VectorXd invKinematics::compute(robotInfo robot, Eigen::VectorXd desOp){
+Eigen::VectorXd invKinematics::compute(Robot robot, Eigen::VectorXd desOp){
     Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.getNumJoints());//Joint vector
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());//Actual operational variables
     Eigen::VectorXd e = Eigen::VectorXd::Zero(robot.getNumJoints());//Error vector
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints());
     Q = operationalState(robot);
     e = desOp - Q;
     double errorCriterion = e.cwiseAbs().maxCoeff(); //Absolute value of the max error in vector e
     int iter = 0; //Iteration counter
     int maxIter = 200; //Max number of iterations (solution not found)
     double tolerance = 1e-10;
-    while(errorCriterion>tolerance&&iter<maxIter){ //Newton's method to solve Inverse Kinematics
-
-    }
+    /*while(errorCriterion>tolerance&&iter<maxIter){ //Newton's method to solve Inverse Kinematics
+        J = jacInvKinematics(robot);
+        q = q + J.inverse()*e;
+        robot.setJoints(q);
+        robot.setT(forwardKinematics(robot.getJoints()));
+        Q = operationalState(robot);
+        e = desOp - Q;
+        errorCriterion = e.cwiseAbs().maxCoeff();
+    }*/
     return q;
 }
 
-Eigen::VectorXd invKinematics::operationalState(robotInfo robot){
+Eigen::VectorXd invKinematics::operationalState(Robot robot){
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());
     std::vector<Eigen::Matrix4d> T = robot.getT();
     Eigen::VectorXd q = robot.getJoints(); 
@@ -43,7 +50,7 @@ Eigen::VectorXd invKinematics::operationalState(robotInfo robot){
     return Q;
 }
 
-Eigen::MatrixXd invKinematics::feetJacobian(robotInfo robot){
+Eigen::MatrixXd invKinematics::feetJacobian(Robot robot){
     int dof = robot.getNumJoints(); //number of degrees of freedom
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,dof); //The Jacobians (6xdof) of both feet into a single Jacobian (12xdof)
     std::vector<Eigen::Matrix4d> T = robot.getT(); //Transformation matrix od each frame wrt world (0Ti)
@@ -72,7 +79,7 @@ Eigen::MatrixXd invKinematics::feetJacobian(robotInfo robot){
     return J;
 }
 
-Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, robotInfo robot){
+Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, Robot robot){
     std::vector<Eigen::MatrixXd> Xn; //Velocity transformation matrix of frame n (at the foot) wrt to each frame
     std::vector<Eigen::MatrixXd> X_new; //subVector of X that only contain the kinematic chaain from base to frame n
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(6,30);
@@ -109,7 +116,7 @@ Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int
     return J;
 }
 
-Eigen::MatrixXd invKinematics::jacInvKinematics(robotInfo robot){
+Eigen::MatrixXd invKinematics::jacInvKinematics(Robot robot){
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints());
     Eigen::MatrixXd Jf = feetJacobian(robot);//Jacobian matrix of feet using spatial notation
     Eigen::VectorXd q = robot.getJoints();
@@ -118,9 +125,15 @@ Eigen::MatrixXd invKinematics::jacInvKinematics(robotInfo robot){
 
     //The jacobian of feetJacobian() its different from the one that we need
     //First in Jf the order of the velocity of the base is [angular velocity, linear velocity]
-    //We need to change the order to [linear velocity,angular velocity]   
+    //We need to change the order to [linear velocity, angular velocity] (swap columns (1:3) and (4:6))
+    Eigen::MatrixXd temp = Jf.block(0,0,12,3);
+    Jf.block(0,0,12,3) = Jf.block(0,3,12,3);
+    Jf.block(0,3,12,3) = temp;
+
+    //Then, Jf returns the velocity of the foot in the order [angular velocity, linear velocity]
+    //We nee to change the order to [linear velocity, angular velocity] (swap rows (1:3) and (4:6))
     //right foot
-    Eigen::MatrixXd temp = Jf.block(0,0,3,robot.getNumJoints());
+    temp = Jf.block(0,0,3,robot.getNumJoints());
     Jf.block(0,0,3,robot.getNumJoints()) = Jf.block(3,0,3,robot.getNumJoints());
     Jf.block(3,0,3,robot.getNumJoints()) = temp;
     //left foot
@@ -142,21 +155,26 @@ Eigen::MatrixXd invKinematics::jacInvKinematics(robotInfo robot){
     //We need that returns the rate of change of euler angles
     //Right foot
     Eigen::Vector3d etaFoot = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.Rf_q0);
-    //Eigen::Matrix3d OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
-    //Jf.block(3,3,3,3) = OmegaFoot*Jf.block(3,3,3,3);
+    Eigen::Matrix3d OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
+    Jf.block(3,3,3,3) = OmegaFoot*Jf.block(3,3,3,3);
     //Left foot 
-    //etaFoot = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.Lf_q0);
-    //OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
-    //Jf.block(9,3,3,3) = OmegaFoot*Jf.block(9,3,3,3);
-    /*
-    std::cout<<Jf.block(0,0,6,12) << std::endl << std::endl;
-    std::cout<<Jf.block(0,12,6,12) << std::endl << std::endl;
-    std::cout<<Jf.block(6,0,6,12) << std::endl << std::endl;
-    std::cout<<Jf.block(6,12,6,12) << std::endl << std::endl;*/
+    etaFoot = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.Lf_q0);
+    OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
+    Jf.block(9,3,3,3) = OmegaFoot*Jf.block(9,3,3,3);
+    
+    //std::cout<<Jf.block(0,0,6,12) << std::endl << std::endl;
+    //std::cout<<Jf.block(0,12,6,12) << std::endl << std::endl;
+    //std::cout<<Jf.block(6,0,6,12) << std::endl << std::endl;
+    //std::cout<<Jf.block(6,12,6,12) << std::endl << std::endl;
+
+    J.block(0,0,12,robot.getNumJoints()) = Jf; //Jacobian of both feet
+    J.block(12,12+BASEDOF,12,12) = Eigen::MatrixXd::Identity(12,12); //Jacobian for the arms and head joints is an identity
+    J.block(24,3,3,3) = Eigen::Matrix3d::Identity(3,3); //Jacobian for the base orientation is an identity
+    J.block(27,0,3,robot.getNumJoints()) = comJacobian(robot); //Jacobian for the center of mass
     return J;
 }
 
-Eigen::MatrixXd invKinematics::comJacobian(robotInfo robot){
+Eigen::MatrixXd invKinematics::comJacobian(Robot robot){
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(3,robot.getNumJoints()); //center of mass jacobian whole robot
     Eigen::MatrixXd JX = Eigen::MatrixXd::Zero(3,robot.getNumJoints()); //jacobian of each center of mass  
     Eigen::Vector3d pCom = Eigen::Vector3d::Zero(3); //vector of each com wrt to world frame

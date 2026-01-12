@@ -1,13 +1,13 @@
 #include <iostream>
 #include "controller/controller.hpp"
 #include "controller/robotParameters.hpp"
-#include "controller/robotInfo.hpp"
+#include "controller/Robot.hpp"
 #include "controller/invKinematics.hpp"
 #include "controller/dynamics.hpp"
 #include <iostream>
 
 int main() {
-    robotInfo nao;
+    Robot nao;
     invKinematics invK;
     dynamics dyn;
     Eigen::VectorXd q = Eigen::VectorXd::Zero(nao.getNumJoints());
@@ -24,14 +24,14 @@ int main() {
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
     J = invK.jacInvKinematics(nao);
 
-    /*std::cout<<J.block(0,0,6,12) << std::endl << std::endl;
+    std::cout<<J.block(0,0,6,12) << std::endl << std::endl;
     std::cout<<J.block(0,12,6,12) << std::endl << std::endl;
     std::cout<<J.block(6,0,6,12) << std::endl << std::endl;
-    std::cout<<J.block(6,12,6,12) << std::endl << std::endl;*/
+    std::cout<<J.block(6,12,6,12) << std::endl << std::endl;
 
-    //std::vector<Eigen::MatrixXd> I = dyn.allSpatialInertiaMatrices(nao);
-    //Eigen::VectorXd C = dyn.computeC(nao,I,true);
-    //std::cout<<C<<std::endl;
+    std::vector<Eigen::MatrixXd> I = dyn.allSpatialInertiaMatrices(nao);
+    Eigen::VectorXd C = dyn.computeC(nao,I,true);
+    std::cout<<C<<std::endl;
     //Eigen::MatrixXd M = dyn.computeM(nao,I);
     //Eigen::MatrixXd AG = dyn.centroidalMatrix(M,nao);
 

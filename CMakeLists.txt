@@ -10,7 +10,7 @@ find_package(Eigen3 REQUIRED)
 add_library(controller_core
     src/controller.cpp
     src/robotParameters.cpp
-    src/robotInfo.cpp
+    src/Robot.cpp
     src/invKinematics.cpp
     src/generalizedFunctions.cpp
     src/dynamics.cpp

@@ -10,11 +10,11 @@
 #define NUM_FRAMES 28 //1 for base, 24 for each joint, 2 extra feet, 1 extra head
 #define NUM_BODIES 25 // 
 
-class robotInfo{
+class Robot{
 public:
-    robotInfo();
-    std::vector<int> parentFrame(); // vector that contains the parent frame p(i) of each frame i
-    std::vector<int> actuatedFrames(); //vector that contains a zero if the frame is not actuated and the number of the joint if it is actuated
+    Robot();
+    std::vector<int> parentFrame() const; // vector that contains the parent frame p(i) of each frame i
+    std::vector<int> actuatedFrames() const; //vector that contains a zero if the frame is not actuated and the number of the joint if it is actuated
     
     int getNumFrames() const {return numFrames;}
     int getNumJoints() const {return numJoints;}
@@ -26,13 +26,10 @@ public:
     std::vector<Eigen::Matrix4d> get_piTi() const {return piTi;}
     std::vector<Eigen::MatrixXd> getX() const {return X;}
     std::vector<linkInertia> getLinks() const {return links;}
-    
-    Eigen::VectorXd initialConfiguration();
-    Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& eulerAngles);
+      
     std::vector<Eigen::Matrix4d> forwardKinematics(Eigen::VectorXd q);
     std::vector<Eigen::Matrix4d> parentTransMatrix(std::vector<Eigen::Matrix4d> T);
     std::vector<Eigen::MatrixXd> allVelocityMatrices(std::vector<Eigen::Matrix4d> piTi);
-    Eigen::VectorXd desiredPosture();
     
     void setJoints(const Eigen::VectorXd q_new){q = q_new;}
     void setVelocities(const Eigen::VectorXd v_new){v = v_new;}
@@ -40,6 +37,9 @@ public:
     void set_piTi(const std::vector<Eigen::Matrix4d> piTi_new){piTi = piTi_new;}
     void setLinks(const std::vector<linkInertia> links_new){links = links_new;}
     void setX(const std::vector<Eigen::MatrixXd> X_new){X = X_new;}
+    void setCoM(const double CoM_new){CoM = CoM_new;}
+
+    //void updateState()
 
     Eigen::Matrix3d Rf_q0; //Rotation matrix of right foot frame when q=0
     Eigen::Matrix3d Lf_q0; //Rotation matrix of left foot frame when q=0 
@@ -59,4 +59,9 @@ private:
     std::vector<linkInertia> links;
     std::vector<Eigen::Matrix4d> piTi; //Transformation matrix of each frame wrt to its parent
     std::vector<Eigen::MatrixXd> X; //Velocity matrix of each frame wrt to its parent
+    double CoM;
 };
+
+Eigen::VectorXd initialConfiguration();
+Eigen::VectorXd desiredPosture();
+

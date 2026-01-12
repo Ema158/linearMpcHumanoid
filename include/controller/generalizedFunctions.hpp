@@ -17,3 +17,5 @@ Eigen::MatrixXd spatialCrossMatrixForce(Eigen::VectorXd v);//given a 6x1 spatial
                                                        
 Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d w); //Transformation matrix that transform angular velocity...
                                                               //to euler angles derivatives
+
+Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& eulerAngles);                                                            
