@@ -39,10 +39,10 @@ Eigen::VectorXd invKinematics::operationalState(Robot robot){
     std::vector<Eigen::Matrix4d> T = robot.getT();
     Eigen::VectorXd q = robot.getJoints(); 
     Q.segment(0,3) = T[7].block(0,3,3,1); //Position of the right foot
-    Q.segment(3,3) = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.Rf_q0); //Euler angles right foot
+    Q.segment(3,3) = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.getRf_q0()); //Euler angles right foot
     
     Q.segment(6,3) = T[14].block(0,3,3,1); //Position of the left foot
-    Q.segment(9,3) = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.Lf_q0); //Euler angles left foot
+    Q.segment(9,3) = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.getLf_q0()); //Euler angles left foot
     
     Q.segment(12,12) = q.segment(12,robot.getNumJoints()); //arms and head joints
     Q.segment(24,3) = q.segment(3,3);
@@ -154,11 +154,11 @@ Eigen::MatrixXd invKinematics::jacInvKinematics(Robot robot){
     //Finally Jf was computed to (when multiply by the joints velocities) return the angular velocity of each foot
     //We need that returns the rate of change of euler angles
     //Right foot
-    Eigen::Vector3d etaFoot = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.Rf_q0);
+    Eigen::Vector3d etaFoot = rotMatrixToEulerAngles(T[7].block(0,0,3,3),robot.getRf_q0());
     Eigen::Matrix3d OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
     Jf.block(3,3,3,3) = OmegaFoot*Jf.block(3,3,3,3);
     //Left foot 
-    etaFoot = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.Lf_q0);
+    etaFoot = rotMatrixToEulerAngles(T[14].block(0,0,3,3),robot.getLf_q0());
     OmegaFoot = matrixAngularVelToEulerDot(etaFoot);
     Jf.block(9,3,3,3) = OmegaFoot*Jf.block(9,3,3,3);
     
@@ -206,7 +206,7 @@ Eigen::MatrixXd invKinematics::comJacobian(Robot robot){
             JX = Eigen::MatrixXd::Zero(3,robot.getNumJoints());
         }
     }
-    J = J/robot.mass;
+    J = J/robot.getMass();
     Eigen::Matrix3d Omega = matrixAngularVelToEulerDot(eta);
     J.block(0,3,3,3) = J.block(0,3,3,3)*Omega.inverse();
     return J;

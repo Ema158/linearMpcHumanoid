@@ -4,95 +4,93 @@
 constexpr double pi = 3.14159265358979323846;
 
 Robot::Robot(){
-    std::vector<linkInertia> links;
-    links = createNaoParameters();
-    Eigen::VectorXd q = Eigen::VectorXd::Zero(getNumJoints());
-    std::vector<Eigen::Matrix4d> T = forwardKinematics(q);
-    
+    links_ = createNaoParameters();
+    Eigen::VectorXd q0 = Eigen::VectorXd::Zero(getNumJoints());
+    T_.resize(getNumFrames());
+    updateState(q0);
     //The inertial information taken from the aldebaran documantation is wrt to an aldebaran frame at each joint
     //Aldebaran frame at each joint coincides with the orientation of the world frame when q=0
     //Algorithms suppose that inertial information is wrt joint frame
     //We need to change the inertial information to joint frame
     std::vector<Eigen::Matrix3d> Rj; //Rotation matrix of each frame
     Rj.resize(getNumFrames());
-    mass = 0;
+    mass_ = 0;
     for (int i=0; i< getNumFrames(); i++){
-        Rj[i] = T[i].block(0,0,3,3); //jR0
-        links[i].com = Rj[i].transpose()*links[i].com; //jR0*0p = jp
-        links[i].inertia = Rj[i].transpose()*links[i].inertia*Rj[i]; //jR0*0I*0Rj = jI
-        mass += links[i].mass;
+        Rj[i] = T_[i].block(0,0,3,3); //jR0
+        links_[i].com = Rj[i].transpose()*links_[i].com; //jR0*0p = jp
+        links_[i].inertia = Rj[i].transpose()*links_[i].inertia*Rj[i]; //jR0*0I*0Rj = jI
+        mass_ += links_[i].mass;
     }
-    setLinks(links);
-    
-    q = initialConfiguration();
-    setJoints(q);
-    T = forwardKinematics(q);
-    setT(T);
-    piTi = parentTransMatrix(T);
+    q0 = initialConfiguration();
+    updateState(q0);
+
+    piTi = parentTransMatrix(T_);
     set_piTi(piTi);
     X = allVelocityMatrices(piTi);
     setX(X);
 
-    Rf_q0 << 0,0,1, //Rotation matrix of right foot frame when q=0
+    Rf_q0_ << 0,0,1, //Rotation matrix of right foot frame when q=0
              0,-1,0,
              1,0,0;
-    Lf_q0 = Rf_q0; //Rotation matrix of left foot frame when q=0
+    Lf_q0_ = Rf_q0_; //Rotation matrix of left foot frame when q=0
 
-    v = Eigen::VectorXd::Zero(getNumJoints());
+    v_ = Eigen::VectorXd::Zero(getNumJoints());
 }
 
-std::vector<Eigen::Matrix4d> Robot::forwardKinematics(Eigen::VectorXd q){
-
-    std::vector<Eigen::Matrix4d> T;
-    T.resize(getNumFrames());
+void Robot::forwardKinematics(){
+    
+    //std::vector<Eigen::Matrix4d> T;
+    //T.resize(getNumFrames());
     Eigen::Vector3d basePos;
-    basePos << q(0), q(1), q(2); //Cartesian coordinates of the base of the robot
-    Eigen::Vector3d baseAttitude = {q(3), q(4), q(5)}; //Base attitude in Euler angles
-    T[0].block(0,3,3,1) = basePos;
-    T[0].block(0,0,3,3) = eulerAnglesToSO3(baseAttitude);
-    T[0].block(3,0,1,4) << 0,0,0,1;
+    basePos << q_(0), q_(1), q_(2); //Cartesian coordinates of the base of the robot
+    Eigen::Vector3d baseAttitude = {q_(3), q_(4), q_(5)}; //Base attitude in Euler angles
+    T_[0].block(0,3,3,1) = basePos;
+    T_[0].block(0,0,3,3) = eulerAnglesToSO3(baseAttitude);
+    T_[0].block(3,0,1,4) << 0,0,0,1;
+    
     std::vector<double> theta;
-    theta.resize(getNumActualJoints()); //theta is the Denavit Hartenberg parameter related with q
+    theta.resize(getNumActualJoints()); //theta is the Denavit Hartenberg parameter related with q_
     
-    theta[0] = q(0 + BASEDOF);
-    theta[1] = q(1 + BASEDOF) + (3.0/4)*pi;
-    theta[2] = q(2 + BASEDOF);
-    theta[3] = q(3 + BASEDOF);
-    theta[4] = q(4 + BASEDOF);
-    theta[5] = q(5 + BASEDOF);
+    theta[0] = q_(0 + BASEDOF);
+    theta[1] = q_(1 + BASEDOF) + (3.0/4)*pi;
+    theta[2] = q_(2 + BASEDOF);
+    theta[3] = q_(3 + BASEDOF);
+    theta[4] = q_(4 + BASEDOF);
+    theta[5] = q_(5 + BASEDOF);
 
-    theta[6] = q(6 + BASEDOF) - (1.0/2)*pi;
-    theta[7] = q(7 + BASEDOF) + (1.0/4)*pi;
-    theta[8] = q(8 + BASEDOF);
-    theta[9] = q(9 + BASEDOF);
-    theta[10] = q(10 + BASEDOF);
-    theta[11] = q(11 + BASEDOF); 
+    theta[6] = q_(6 + BASEDOF) - (1.0/2)*pi;
+    theta[7] = q_(7 + BASEDOF) + (1.0/4)*pi;
+    theta[8] = q_(8 + BASEDOF);
+    theta[9] = q_(9 + BASEDOF);
+    theta[10] = q_(10 + BASEDOF);
+    theta[11] = q_(11 + BASEDOF); 
     
-    theta[12] = q(12 + BASEDOF);
-    theta[13] = q(13 + BASEDOF) + (1.0/2)*pi;
-    theta[14] = q(14 + BASEDOF);
-    theta[15] = q(15 + BASEDOF);
-    theta[16] = q(16 + BASEDOF);
+    theta[12] = q_(12 + BASEDOF);
+    theta[13] = q_(13 + BASEDOF) + (1.0/2)*pi;
+    theta[14] = q_(14 + BASEDOF);
+    theta[15] = q_(15 + BASEDOF);
+    theta[16] = q_(16 + BASEDOF);
 
-    theta[17] = q(17 + BASEDOF);
-    theta[18] = q(18 + BASEDOF) + (1.0/2)*pi;
-    theta[19] = q(19 + BASEDOF);
-    theta[20] = q(20 + BASEDOF);
-    theta[21] = q(21 + BASEDOF);
+    theta[17] = q_(17 + BASEDOF);
+    theta[18] = q_(18 + BASEDOF) + (1.0/2)*pi;
+    theta[19] = q_(19 + BASEDOF);
+    theta[20] = q_(20 + BASEDOF);
+    theta[21] = q_(21 + BASEDOF);
 
-    theta[22] = q(22 + BASEDOF);
-    theta[23] = q(23 + BASEDOF) - (1.0/2)*pi;
+    theta[22] = q_(22 + BASEDOF);
+    theta[23] = q_(23 + BASEDOF) - (1.0/2)*pi;
     theta[24] = -pi/2;
+    
     std::vector<Eigen::Matrix4d> Temp = matTrans(theta); //Transformation matrix of each frame wrt its parent frame
-
-    //===================Transformation matrix of the frame 1(RHipYawPitch) wrt to world frame when q=0
+    
+    //===================Transformation matrix of the frame 1(RHipYawPitch) wrt to world frame when q_=0
     Eigen::Matrix4d auxT01;
     auxT01 <<      0, -1,      0, 0,
               0.7071,  0, 0.7071, 0,
              -0.7071,  0, 0.7071, 0,
                    0,  0,      0, 1;
 
-    //===================Transformation matrix of the frame 9(LHipYawPitch) wrt to world frame when q=0
+    //===================Transformation matrix of the frame 9(LHipYawPitch) wrt to world frame when q_=0
     Eigen::Matrix4d auxT09;
     auxT09 << 1,       0,      0, 0,
               0,  0.7071, 0.7071, 0,
@@ -114,48 +112,46 @@ std::vector<Eigen::Matrix4d> Robot::forwardKinematics(Eigen::VectorXd q){
                   0, 0, 0,       1; 
 
     //=======================Forward kinematics right leg
-    T[1] = T[0]*auxT01*Temp[0];
+    T_[1] = T_[0]*auxT01*Temp[0];
     //std::cout << Temp[0] << std::endl;
     for(int i=1; i<6; i++){
-        T[i+1] = T[i]*Temp[i]; 
+        T_[i+1] = T_[i]*Temp[i]; 
     }
-    T[7] = T[6]*auxT_RFoot;
-
+    T_[7] = T_[6]*auxT_RFoot;
     //======================Forward kinematics left leg
-    T[8] = T[0]*auxT09*Temp[6];
+    T_[8] = T_[0]*auxT09*Temp[6];
     for(int i=8; i<13; i++){
-       T[i+1] = T[i]*Temp[i-1]; //Temp[i-1] beacause there is now an extra frame in the sole
+       T_[i+1] = T_[i]*Temp[i-1]; //Temp[i-1] beacause there is now an extra frame in the sole
     }
-    T[14] = T[13]*auxT_LFoot;
+    T_[14] = T_[13]*auxT_LFoot;
 
     //=====================Forward kinematics right arm
     Eigen::Vector3d rightShoulderOffset = {0,-0.098,0.13591}; //Position of the right shoulder wrt base frame
-    T[15] = Temp[12];
-    T[15].block(0,3,3,1) = T[15].block(0,3,3,1) + rightShoulderOffset;
-    T[15] = T[0]*T[15];
+    T_[15] = Temp[12];
+    T_[15].block(0,3,3,1) = T_[15].block(0,3,3,1) + rightShoulderOffset;
+    T_[15] = T_[0]*T_[15];
     for(int i=15; i<19; i++){
-        T[i+1] = T[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole
+        T_[i+1] = T_[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole
     }
 
     //==================Forward kinematics left arm
     Eigen::Vector3d leftShoulderOffset = {0,0.098,0.13591}; //Position of the left shoulder wrt base frame
-    T[20] = Temp[17];
-    T[20].block(0,3,3,1) = T[20].block(0,3,3,1) + leftShoulderOffset;
-    T[20] = T[0]*T[20];
+    T_[20] = Temp[17];
+    T_[20].block(0,3,3,1) = T_[20].block(0,3,3,1) + leftShoulderOffset;
+    T_[20] = T_[0]*T_[20];
     for(int i=20; i<24; i++){
-        T[i+1] = T[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole
+        T_[i+1] = T_[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole
     }
 
     //=================Forward kinematics head
     Eigen::Vector3d headOffset = {0,0,0.1615}; //Position of the head wrt base frame
-    T[25] = Temp[22];
-    T[25].block(0,3,3,1) = T[25].block(0,3,3,1) + headOffset;
-    T[25] = T[0]*T[25];
+    T_[25] = Temp[22];
+    T_[25].block(0,3,3,1) = T_[25].block(0,3,3,1) + headOffset;
+    T_[25] = T_[0]*T_[25];
     for(int i=25; i<27; i++){
-      T[i+1] = T[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole  
+      T_[i+1] = T_[i]*Temp[i-2];//Temp[i-2] beacause there are now two extra frames in each sole  
     }
         
-    return T;
 }
 
 std::vector<int> Robot::parentFrame() const{
@@ -172,11 +168,9 @@ std::vector<int> Robot::actuatedFrames() const{
     return a_i;
 }
 
-
-
-std::vector<Eigen::Matrix4d> Robot::matTrans(std::vector<double> theta){
+std::vector<Eigen::Matrix4d> matTrans(std::vector<double> theta){
     std::vector<Eigen::Matrix4d> T;
-    int N = getNumBodies(); // Number of frames
+    int N = 25; // Number of frames with joints and an extra frame for the head
     T.resize(N);
     double r1 = -0.07071; //distance from the torso to the hip
     double r7 = 0.07071;//distance from the torso to the hip
@@ -223,21 +217,19 @@ std::vector<Eigen::Matrix4d> Robot::matTrans(std::vector<double> theta){
     return T;
 }
 
-Eigen::Vector3d Robot::getCoM(){
+void Robot::computeCoM(){
     Eigen::Vector3d com = Eigen::Vector3d::Zero(3);
-    std::vector<Eigen::Matrix4d> T = getT();
     Eigen::Vector3d pComj; //Position of the center of mass of the jth body
     Eigen::Vector4d pComj4 = Eigen::VectorXd::Zero(4); //Position of the center of mass of the jth body in homogenous coordinates 
                                                      // a 4th dimention vector with a one at the end [com,1]
-    std::vector<linkInertia> links = getLinks();
+    
     for (int i=0;i<getNumFrames(); i++){
-        //std::cout<< T[i] << std::endl;
-        pComj4 << links[i].com,1.0; //com of each body wrt to body frame
-        pComj = T[i].block(0,0,3,4)*pComj4; //com of each body wrt world frame
-        com = com + links[i].mass*pComj; //com of full robot wrt world frame
+        pComj4 << links_[i].com,1.0; //com of each body wrt to body frame
+        
+        pComj = T_[i].block(0,0,3,4)*pComj4; //com of each body wrt world frame
+        com = com + links_[i].mass*pComj; //com of full robot wrt world frame
     }
-    com = com/mass;
-    return com;
+    CoM_ = com/mass_;
 }
 
 std::vector<Eigen::Matrix4d> Robot::parentTransMatrix(std::vector<Eigen::Matrix4d> T){
@@ -295,4 +287,10 @@ Eigen::VectorXd desiredPosture(){
             0,0;
 
     return qDes;
+}
+
+void Robot::updateState(const Eigen::VectorXd& q_new){
+    q_ = q_new;
+    forwardKinematics();
+    computeCoM();
 }

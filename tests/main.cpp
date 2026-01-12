@@ -9,17 +9,7 @@
 int main() {
     Robot nao;
     invKinematics invK;
-    dynamics dyn;
-    Eigen::VectorXd q = Eigen::VectorXd::Zero(nao.getNumJoints());
-    //Desired initial position
-    Eigen::VectorXd desRf = Eigen::VectorXd::Zero(6);//Desired position for the right foot
-    desRf << 0,-0.05,0,0,0,0;
-    Eigen::VectorXd desLf = Eigen::VectorXd::Zero(6);//Desired position and orientation for the left foot
-    desLf << 0,0.05,0,0,0,0;
-    Eigen::Vector3d desCom;//Desires position for the com
-    desCom << 0,0,0.26;
-    std::vector<Eigen::Matrix4d> T = nao.getT();
-    q = nao.getJoints();
+    //dynamics dyn;
     
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
     J = invK.jacInvKinematics(nao);
@@ -29,9 +19,9 @@ int main() {
     std::cout<<J.block(6,0,6,12) << std::endl << std::endl;
     std::cout<<J.block(6,12,6,12) << std::endl << std::endl;
 
-    std::vector<Eigen::MatrixXd> I = dyn.allSpatialInertiaMatrices(nao);
-    Eigen::VectorXd C = dyn.computeC(nao,I,true);
-    std::cout<<C<<std::endl;
+    //std::vector<Eigen::MatrixXd> I = dyn.allSpatialInertiaMatrices(nao);
+    //Eigen::VectorXd C = dyn.computeC(nao,I,true);
+    //std::cout<<C<<std::endl;
     //Eigen::MatrixXd M = dyn.computeM(nao,I);
     //Eigen::MatrixXd AG = dyn.centroidalMatrix(M,nao);
 

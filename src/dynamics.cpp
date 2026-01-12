@@ -116,7 +116,7 @@ Eigen::MatrixXd dynamics::centroidalMatrix(const Eigen::MatrixXd& M, const Robot
     Eigen::MatrixXd F = M.block(0,6,6,robot.getNumActualJoints());
     Eigen::MatrixXd X1G = Eigen::MatrixXd::Zero(6,6); //velocity transformation matrix base frame/com frame
     Eigen::Vector3d p1G = Eigen::Vector3d::Zero(3);
-    p1G << Ic1(2,4)/robot.mass,Ic1(0,5)/robot.mass,Ic1(1,3)/robot.mass;
+    p1G << Ic1(2,4)/robot.getMass(),Ic1(0,5)/robot.getMass(),Ic1(1,3)/robot.getMass();
     X1G.block(0,0,3,3) = T01.block(0,0,3,3); //Rotation matrix of base frame wrt world frame
     X1G.block(3,3,3,3) = T01.block(0,0,3,3); //Rotation matrix of base frame wrt world frame
     X1G.block(0,3,3,3) = -T01.block(0,0,3,3)*crossMatrix(p1G);
