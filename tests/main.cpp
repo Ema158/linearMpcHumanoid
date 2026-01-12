@@ -8,11 +8,11 @@
 
 int main() {
     Robot nao;
-    invKinematics invK;
+    //invKinematics invK;
     //dynamics dyn;
     
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,30);
-    J = invK.jacInvKinematics(nao);
+    J = ik::jacInvKinematics(nao);
 
     std::cout<<J.block(0,0,6,12) << std::endl << std::endl;
     std::cout<<J.block(0,12,6,12) << std::endl << std::endl;

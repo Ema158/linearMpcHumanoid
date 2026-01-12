@@ -23,24 +23,24 @@ public:
     Eigen::VectorXd getJoints() const {return q_;}
     Eigen::VectorXd getJointsVelocity() const {return v_;}
     std::vector<Eigen::Matrix4d> getT() const {return T_;} 
-    std::vector<Eigen::Matrix4d> get_piTi() const {return piTi;}
-    std::vector<Eigen::MatrixXd> getX() const {return X;}
     std::vector<linkInertia> getLinks() const {return links_;}
     Eigen::Vector3d getCoM() const {return CoM_;}
     double getMass() const {return mass_;}
     Eigen::Matrix3d getRf_q0() const {return Rf_q0_;}
     Eigen::Matrix3d getLf_q0() const {return Lf_q0_;}
+    std::vector<Eigen::MatrixXd> getX() const {return X_;}
     
     void computeCoM();
     void forwardKinematics();
-    std::vector<Eigen::Matrix4d> parentTransMatrix(std::vector<Eigen::Matrix4d> T);
-    std::vector<Eigen::MatrixXd> allVelocityMatrices(std::vector<Eigen::Matrix4d> piTi);
     
     void setVelocities(const Eigen::VectorXd v_new){v_ = v_new;}
-    void set_piTi(const std::vector<Eigen::Matrix4d> piTi_new){piTi = piTi_new;}
-    void setX(const std::vector<Eigen::MatrixXd> X_new){X = X_new;}
-
     void updateState(const Eigen::VectorXd& q_new);
+
+    std::vector<Eigen::Matrix4d> parentTransMatrix(
+    const std::vector<Eigen::Matrix4d>& T);
+
+    void allVelocityMatrices(
+    const std::vector<Eigen::Matrix4d>& piTi);
  
 private:
     int numJoints = NUM_JOINTS;
@@ -51,8 +51,7 @@ private:
     Eigen::VectorXd v_; //Generalized velocities (note v \neq dot{q})
     std::vector<Eigen::Matrix4d> T_; //Transformation matrix of each frame wrt world frame
     std::vector<linkInertia> links_;
-    std::vector<Eigen::Matrix4d> piTi; //Transformation matrix of each frame wrt to its parent
-    std::vector<Eigen::MatrixXd> X; //Velocity matrix of each frame wrt to its parent
+    std::vector<Eigen::MatrixXd> X_; //Velocity matrix of each frame wrt to its parent
     Eigen::Vector3d CoM_;
     double mass_;
     Eigen::Matrix3d Rf_q0_; //Rotation matrix of right foot frame when q=0

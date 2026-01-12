@@ -2,7 +2,12 @@
 #include <iostream>
 #define BASEDOF 6
 
-Eigen::VectorXd invKinematics::desiredOperationalState(Robot robot, const Eigen::VectorXd Rf, const Eigen::VectorXd Lf, const Eigen::Vector3d com){
+Eigen::VectorXd ik::desiredOperationalState(
+    const Robot& robot,
+    const Eigen::VectorXd& Rf,
+    const Eigen::VectorXd& Lf,
+    const Eigen::Vector3d& com)
+{
     Eigen::VectorXd Qd = Eigen::VectorXd::Zero(robot.getNumJoints());
     Eigen::VectorXd q = robot.getJoints();
     Qd.segment(0,6) = Rf;
@@ -11,7 +16,10 @@ Eigen::VectorXd invKinematics::desiredOperationalState(Robot robot, const Eigen:
     return Qd;
 }
 
-Eigen::VectorXd invKinematics::compute(Robot robot, Eigen::VectorXd desOp){
+Eigen::VectorXd ik::compute(
+    Robot& robot,
+    const Eigen::VectorXd& desOp)
+{
     Eigen::VectorXd q = Eigen::VectorXd::Zero(robot.getNumJoints());//Joint vector
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());//Actual operational variables
     Eigen::VectorXd e = Eigen::VectorXd::Zero(robot.getNumJoints());//Error vector
@@ -34,7 +42,9 @@ Eigen::VectorXd invKinematics::compute(Robot robot, Eigen::VectorXd desOp){
     return q;
 }
 
-Eigen::VectorXd invKinematics::operationalState(Robot robot){
+Eigen::VectorXd ik::operationalState(
+    const Robot& robot)
+{
     Eigen::VectorXd Q = Eigen::VectorXd::Zero(robot.getNumJoints());
     std::vector<Eigen::Matrix4d> T = robot.getT();
     Eigen::VectorXd q = robot.getJoints(); 
@@ -50,7 +60,9 @@ Eigen::VectorXd invKinematics::operationalState(Robot robot){
     return Q;
 }
 
-Eigen::MatrixXd invKinematics::feetJacobian(Robot robot){
+Eigen::MatrixXd ik::feetJacobian(
+    const Robot& robot)
+{
     int dof = robot.getNumJoints(); //number of degrees of freedom
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(12,dof); //The Jacobians (6xdof) of both feet into a single Jacobian (12xdof)
     std::vector<Eigen::Matrix4d> T = robot.getT(); //Transformation matrix od each frame wrt world (0Ti)
@@ -79,7 +91,11 @@ Eigen::MatrixXd invKinematics::feetJacobian(Robot robot){
     return J;
 }
 
-Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int frame, Robot robot){
+Eigen::MatrixXd ik::frameJacobian(
+    const std::vector<Eigen::MatrixXd>& X,
+    int frame,
+    const Robot& robot)
+{
     std::vector<Eigen::MatrixXd> Xn; //Velocity transformation matrix of frame n (at the foot) wrt to each frame
     std::vector<Eigen::MatrixXd> X_new; //subVector of X that only contain the kinematic chaain from base to frame n
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(6,30);
@@ -116,7 +132,9 @@ Eigen::MatrixXd invKinematics::frameJacobian(std::vector<Eigen::MatrixXd> X, int
     return J;
 }
 
-Eigen::MatrixXd invKinematics::jacInvKinematics(Robot robot){
+Eigen::MatrixXd ik::jacInvKinematics(
+    const Robot& robot)
+{
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints());
     Eigen::MatrixXd Jf = feetJacobian(robot);//Jacobian matrix of feet using spatial notation
     Eigen::VectorXd q = robot.getJoints();
@@ -174,7 +192,9 @@ Eigen::MatrixXd invKinematics::jacInvKinematics(Robot robot){
     return J;
 }
 
-Eigen::MatrixXd invKinematics::comJacobian(Robot robot){
+Eigen::MatrixXd ik::comJacobian(
+    const Robot& robot)
+{
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(3,robot.getNumJoints()); //center of mass jacobian whole robot
     Eigen::MatrixXd JX = Eigen::MatrixXd::Zero(3,robot.getNumJoints()); //jacobian of each center of mass  
     Eigen::Vector3d pCom = Eigen::Vector3d::Zero(3); //vector of each com wrt to world frame
@@ -212,14 +232,20 @@ Eigen::MatrixXd invKinematics::comJacobian(Robot robot){
     return J;
 }
 
-Eigen::MatrixXd invKinematics::baseJacobian(Eigen::Vector3d pBase, Eigen::Vector3d pFrame){
+Eigen::MatrixXd ik::baseJacobian(
+    const Eigen::Vector3d& pBase,
+    const Eigen::Vector3d& pFrame)
+{
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(3,6);
     J.block(0,0,3,3) = Eigen::Matrix3d::Identity();
     J.block(0,3,3,3) = crossMatrix(pBase-pFrame);
     return J;
 }
 
-Eigen::Vector3d invKinematics::rotMatrixToEulerAngles(Eigen::Matrix3d R, Eigen::Matrix3d refFrame){
+Eigen::Vector3d ik::rotMatrixToEulerAngles(
+    const Eigen::Matrix3d& R,
+    const Eigen::Matrix3d& refFrame)
+{
     Eigen::Vector3d eta = Eigen::Vector3d::Zero(3);
     Eigen::Matrix3d newR = Eigen::Matrix3d::Zero(3,3);
     newR = R*refFrame; //Change of reference of rotation matrix, such that when R=refFrame->newR=Identity->eta=0
@@ -228,3 +254,4 @@ Eigen::Vector3d invKinematics::rotMatrixToEulerAngles(Eigen::Matrix3d R, Eigen::
     eta(0) = std::atan2(std::sin(eta(2))*newR(0,2)-std::cos(eta(2))*newR(1,2),-std::sin(eta(2))*newR(0,1)+std::cos(eta(2))*newR(1,1)); //Roll right foot
     return eta;
 }
+
