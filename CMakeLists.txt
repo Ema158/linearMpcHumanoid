@@ -7,6 +7,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Eigen3 REQUIRED)
 
+# qpOASES
+include_directories($ENV{HOME}/.local/include)
+link_directories($ENV{HOME}/.local/lib)
+
 add_library(controller_core
     src/controller.cpp
     src/robotParameters.cpp
@@ -15,6 +19,7 @@ add_library(controller_core
     src/generalizedFunctions.cpp
     src/dynamics.cpp
     src/mpcLinearPendulum.cpp
+    src/zmpGeneration.cpp
 )
 
 target_include_directories(controller_core PUBLIC
@@ -23,6 +28,7 @@ target_include_directories(controller_core PUBLIC
 
 target_link_libraries(controller_core PUBLIC
     Eigen3::Eigen
+    qpOASES
 )
 
 add_executable(test_controller
