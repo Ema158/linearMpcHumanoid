@@ -1,17 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
-
-enum class SupportFoot {
-    Right,
-    Left,
-    Double
-};
-
-enum class Task{
-    Stand,
-    Walk,
-    Jump
-};
+#include "controller/Task.hpp"
 
 class ZMP{
 public:

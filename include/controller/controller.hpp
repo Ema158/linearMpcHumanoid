@@ -1,15 +1,20 @@
 #pragma once
 #include <Eigen/Dense>
+#include "controller/Robot.hpp"
+#include "controller/mpcLinearPendulum.hpp"
+#include "controller/zmpGeneration.hpp"
+#include "controller/Task.hpp"
 
 class Controller {
 public:
-    Controller();
+    Controller(Robot& robot);
 
-    void setState(float c,
-                  float d);
+    void stand();
 
-    void compute();
-
-    const int torques() const;
-
+private:
+    double simulationTime_ = 4;
+    double t_ = 0;
+    double dt_ = 0.01;
+    Eigen::VectorXd tau_;
+    Robot robot_;
 };
