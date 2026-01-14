@@ -5,6 +5,7 @@
 #include "controller/zmpGeneration.hpp"
 #include "controller/Task.hpp"
 #include "controller/Dynamics.hpp"
+#include "controller/Clock.hpp"
 
 /*
 state = [q, v]

@@ -21,13 +21,13 @@ public:
 
     Eigen::Vector3d getXRef() const {return xRef_;}
     Eigen::Vector3d getYRef() const {return yRef_;}
-    double getTime() const {return t_;}
 
     Eigen::VectorXd compute(
         const Eigen::Vector2d& posCom,
         const Eigen::Vector2d& velCom,
         const Eigen::VectorXd& zmpXRef,
-        const Eigen::VectorXd& zmpYRef);
+        const Eigen::VectorXd& zmpYRef,
+        double t);
 
     
 private:
@@ -45,7 +45,6 @@ private:
     double gravity_ = 9.81;
     double alpha_ = 1e-3;
     double beta_ = 1;
-    double t_ = 0;
     int horizon_ = static_cast<int>(timeHorizon_ / dt_);
     qpOASES::QProblem qpx_;
     bool qpx_initialized_ = false;

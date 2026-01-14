@@ -80,7 +80,8 @@ Eigen::VectorXd Mpc3dLip::compute(
     const Eigen::Vector2d& posCom,
     const Eigen::Vector2d& velCom,
     const Eigen::VectorXd& zmpXRef,
-    const Eigen::VectorXd& zmpYRef)
+    const Eigen::VectorXd& zmpYRef,
+    double t)
 {
     Eigen::VectorXd Xref = Eigen::VectorXd(6); //pos,vel and acc of the com in x-y
     Eigen::Vector2d xk(posCom(0), velCom(0));
@@ -89,7 +90,7 @@ Eigen::VectorXd Mpc3dLip::compute(
     Eigen::MatrixXd H = alpha_*Eigen::MatrixXd::Identity(horizon_ + 1,horizon_ + 1)
                       + beta_*(Pu_.transpose()*Pu_);
 
-    int k = static_cast<int>(t_/ dt_);
+    int k = static_cast<int>(t/ dt_);
     auto zmpX_horizon = zmpXRef.segment(k, horizon_ + 1);
     auto zmpY_horizon = zmpYRef.segment(k, horizon_ + 1);
 
@@ -105,7 +106,6 @@ Eigen::VectorXd Mpc3dLip::compute(
     yk = A_*yk + B_*accy;
     Xref << xk,accx,yk,accy;
 
-    t_ = t_ + dt_;
     return Xref;
 }
 

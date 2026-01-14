@@ -19,24 +19,29 @@ Controller::Controller(
 
 void Controller::stand() 
 {
-     Mpc3dLip mpc;
+     Clock clock;
+     double timeHorizon = 0.5;
+     Mpc3dLip mpc(clock.getTimeStep(), timeHorizon, robot_.getCoM()(2));
      ZMP zmp(Task::Stand,simulationTime_,dt_,SupportFoot::Double);
      Eigen::Vector2d com_xy;
      Eigen::Vector2d comVel_xy;
      Eigen::Vector2d vel_xy = Eigen::Vector2d::Zero(2);
      Eigen::VectorXd newState = Eigen::VectorXd::Zero(6);
-     while(std::abs(t_ - simulationTime_) > 0.01)
+     com_xy << robot_.getCoM()(0),robot_.getCoM()(1);
+     while(std::abs(clock.getTime() - simulationTime_) > 0.01)
      {
         dyn_.computeAll(robot_); //Computes M,C,AG,AGpqp
-        com_xy << robot_.getCoM()(0),robot_.getCoM()(1); //Current position center of mass
+
+        //com_xy << robot_.getCoM()(0),robot_.getCoM()(1); //Current position center of mass
         computeComVelocity(state_.segment(robot_.getNumJoints(),robot_.getNumJoints())); //Current velocity center of mass
-        comVel_xy << comVel_(0),comVel_(1);
-        newState = mpc.compute(com_xy,comVel_xy,zmp.getZmpXRef(),zmp.getZmpYRef());
+        //comVel_xy << comVel_(0),comVel_(1);
+        
+        newState = mpc.compute(com_xy,comVel_xy,zmp.getZmpXRef(),zmp.getZmpYRef(), clock.getTime());
         com_xy << newState(0),newState(3);
-        vel_xy << newState(1),newState(4);
+        comVel_xy << newState(1),newState(4);
         std::cout<<newState<<std::endl<<std::endl;
 
-        t_ = t_ + dt_;
+        clock.step();
      }   
 }
 
