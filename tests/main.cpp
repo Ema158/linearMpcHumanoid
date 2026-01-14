@@ -3,7 +3,7 @@
 #include "controller/robotParameters.hpp"
 #include "controller/Robot.hpp"
 #include "controller/invKinematics.hpp"
-#include "controller/dynamics.hpp"
+#include "controller/Dynamics.hpp"
 #include "controller/mpcLinearPendulum.hpp"
 #include "controller/zmpGeneration.hpp"
 #include <iostream>

@@ -17,7 +17,7 @@ add_library(controller_core
     src/Robot.cpp
     src/invKinematics.cpp
     src/generalizedFunctions.cpp
-    src/dynamics.cpp
+    src/Dynamics.cpp
     src/mpcLinearPendulum.cpp
     src/zmpGeneration.cpp
 )

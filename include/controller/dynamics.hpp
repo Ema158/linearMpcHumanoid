@@ -5,11 +5,14 @@
 #include <Eigen/Dense>
 #include <vector>
 
-namespace dyn{
+class Dynamics{
+    public:
+    Dynamics();
+
     std::vector<Eigen::MatrixXd> allSpatialInertiaMatrices(
         const Robot& robot); //computes the spatial inertia 6x6 matrices of all frames
 
-    Eigen::VectorXd computeC(
+    void computeC(
         const Robot& robot,
         const std::vector<Eigen::MatrixXd>& I,
         bool isGravity); //..computes the Coriolles,centrigula,gravitational force vector.
@@ -25,5 +28,14 @@ namespace dyn{
     
     Eigen::MatrixXd spatialInertiaMatrix(
         const linkInertia& link); //compues the spatial inertia 6x6 matrix of a fraame
+
+    Eigen::VectorXd getC() const {return C_;}
+    Eigen::MatrixXd getM() const {return M_;}
+    Eigen::VectorXd getAG() const {return AG_;}
     
-}
+    private:
+    Eigen::VectorXd C_;
+    Eigen::MatrixXd M_;
+    Eigen::MatrixXd AG_;
+    Eigen::MatrixXd AGpqp_;
+};

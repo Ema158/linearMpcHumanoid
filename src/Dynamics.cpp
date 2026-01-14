@@ -1,8 +1,8 @@
-#include <controller/dynamics.hpp>
+#include <controller/Dynamics.hpp>
 #include <iostream>
 #define BASEDOF 6
 
-Eigen::MatrixXd dyn::spatialInertiaMatrix(
+Eigen::MatrixXd Dynamics::spatialInertiaMatrix(
     const linkInertia& link)
 {
     Eigen::MatrixXd I = Eigen::MatrixXd::Zero(6,6);
@@ -13,25 +13,22 @@ Eigen::MatrixXd dyn::spatialInertiaMatrix(
     return I;
 }
 
-std::vector<Eigen::MatrixXd> dyn::allSpatialInertiaMatrices(
+void Dynamics::allSpatialInertiaMatrices(
     const Robot& robot)
 {
     std::vector<linkInertia> links = robot.getLinks();
-    std::vector<Eigen::MatrixXd> I;
     std::vector<int> act = robot.actuatedFrames();
-    I.resize(robot.getNumFrames());
-    I[0] = spatialInertiaMatrix(links[0]);
+    I_.resize(robot.getNumFrames());
+    I_[0] = spatialInertiaMatrix(links[0]);
     for(int i=1;i<robot.getNumFrames();i++){
         if (act[i]!=0){ //Only compute the spatial inertia of frames with actual joints
-            I[i] = spatialInertiaMatrix(links[i]);
+            I_[i] = spatialInertiaMatrix(links[i]);
         }
     }
-    return I;
 }
 
-Eigen::VectorXd dyn::computeC(
+Eigen::VectorXd Dynamics::computeC(
     const Robot& robot,
-    const std::vector<Eigen::MatrixXd>& I,
     bool isGravity)
 {
    Eigen::VectorXd C = Eigen::VectorXd::Zero(robot.getNumJoints());
@@ -54,15 +51,15 @@ Eigen::VectorXd dyn::computeC(
    f.resize(robot.getNumFrames());
 
    //Base velocity and spatial force
-   vel[0] = qD.segment(0,6);
+   vel[0] = qD.segment(0,6); 
    acc[0] = X[0]*g; // transform the acc wrt world frame to wrt base frame 
-   f[0] = I[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I[0]*vel[0];
+   f[0] = I_[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I_[0]*vel[0];
    //Forward pass Newton-Euler  
    for (int i=1;i<robot.getNumFrames();i++){
         if (act[i]!=0){
             vel[i] = X[i]*vel[ant[i]] + S*qD[act[i] + BASEDOF - 1];
             acc[i] = X[i]*acc[ant[i]] + spatialCrossMatrix(vel[i])*S*qD[act[i] + BASEDOF - 1];
-            f[i] = I[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I[i]*vel[i];
+            f[i] = I_[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I_[i]*vel[i];
         }
     }
     //Backward pass
@@ -73,21 +70,20 @@ Eigen::VectorXd dyn::computeC(
         }
     }
     C.segment(0,6) = f[0]; //Base joint is a 6x6 dof, thats why for base joint S = identity
-   return C; 
+    return C;
 }
 
-Eigen::MatrixXd dyn::computeM(
-    const Robot& robot,
-    const std::vector<Eigen::MatrixXd>& I)
+void Dynamics::computeM(
+    const Robot& robot)
 {
-    Eigen::MatrixXd M = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints()); //inertia Matrix floating base
+    M_ = Eigen::MatrixXd::Zero(robot.getNumJoints(),robot.getNumJoints()); //inertia Matrix floating base
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(robot.getNumActualJoints(),robot.getNumActualJoints()); //inertia Matrix actuated joints
     std::vector<Eigen::MatrixXd> X = robot.getX(); // 
     std::vector<int> act = robot.actuatedFrames();
     std::vector<int> ant = robot.parentFrame();
     Eigen::VectorXd S = Eigen::VectorXd::Zero(6); //axis joint 
     S << 0,0,1,0,0,0; //It is assumed all joints are rotational joints that rotates around z axis
-    std::vector<Eigen::MatrixXd> Ic = I; //Ic is the vector of composed spatial inertias, 
+    std::vector<Eigen::MatrixXd> Ic = I_; //Ic is the vector of composed spatial inertias, 
                                          //It is initialized as the spatial inertia of each body
     std::vector<Eigen::VectorXd> f; //spatial force at each actuated frame
     f.resize(robot.getNumFrames());
@@ -112,21 +108,19 @@ Eigen::MatrixXd dyn::computeM(
                                                         //here S=identity beacause base frame is a 6 dof virtual joint
         }  
     }
-    M.block(0,0,6,6) = Ic[0];
-    M.block(BASEDOF,BASEDOF,robot.getNumActualJoints(),robot.getNumActualJoints()) = H;
-    M.block(0,BASEDOF,6,robot.getNumActualJoints()) = F2;
-    M.block(BASEDOF,0,robot.getNumActualJoints(),6) = F2.transpose();
-    return M;
+    M_.block(0,0,6,6) = Ic[0];
+    M_.block(BASEDOF,BASEDOF,robot.getNumActualJoints(),robot.getNumActualJoints()) = H;
+    M_.block(0,BASEDOF,6,robot.getNumActualJoints()) = F2;
+    M_.block(BASEDOF,0,robot.getNumActualJoints(),6) = F2.transpose();
 }
 
-Eigen::MatrixXd dyn::centroidalMatrix(
-    const Eigen::MatrixXd& M,
+void Dynamics::centroidalMatrixAndBias(
     const Robot& robot)
 {
-    Eigen::MatrixXd AG = Eigen::MatrixXd(6,robot.getNumJoints()); //6 for linear and angular momentum of the com
+    AG_ = Eigen::MatrixXd(6,robot.getNumJoints()); //6 for linear and angular momentum of the com
     Eigen::MatrixXd T01 = robot.getT()[0];
-    Eigen::MatrixXd Ic1 = M.block(0,0,6,6); //composed spatial inertia matrix of the base
-    Eigen::MatrixXd F = M.block(0,6,6,robot.getNumActualJoints());
+    Eigen::MatrixXd Ic1 = M_.block(0,0,6,6); //composed spatial inertia matrix of the base
+    Eigen::MatrixXd F = M_.block(0,6,6,robot.getNumActualJoints());
     Eigen::MatrixXd X1G = Eigen::MatrixXd::Zero(6,6); //velocity transformation matrix base frame/com frame
     Eigen::Vector3d p1G = Eigen::Vector3d::Zero(3);
     p1G << Ic1(2,4)/robot.getMass(),Ic1(0,5)/robot.getMass(),Ic1(1,3)/robot.getMass();
@@ -134,7 +128,17 @@ Eigen::MatrixXd dyn::centroidalMatrix(
     X1G.block(3,3,3,3) = T01.block(0,0,3,3); //Rotation matrix of base frame wrt world frame
     X1G.block(0,3,3,3) = -T01.block(0,0,3,3)*crossMatrix(p1G);
 
-    AG.block(0,0,6,6) = X1G*Ic1;
-    AG.block(0,6,6,robot.getNumActualJoints()) = X1G*F;
-    return AG;                                                 
+    AG_.block(0,0,6,6) = X1G*Ic1;
+    AG_.block(0,6,6,robot.getNumActualJoints()) = X1G*F;    //Centroidal Matrix
+    
+    AGpqp_ = X1G*Cg_.segment(0,6);//Centroidal Bias
+}
+
+void Dynamics::computeAll(const Robot& robot)
+{
+    allSpatialInertiaMatrices(robot);
+    C_ = computeC(robot,true);
+    Cg_ = computeC(robot,false);
+    computeM(robot);
+    centroidalMatrixAndBias(robot);
 }
