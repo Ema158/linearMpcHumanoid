@@ -6,6 +6,7 @@
 #include "controller/Task.hpp"
 #include "controller/Dynamics.hpp"
 #include "controller/Clock.hpp"
+#include "controller/invKinematics.hpp"
 
 /*
 state = [q, v]
@@ -29,6 +30,8 @@ public:
     void computeComVelocity(Eigen::VectorXd v); //Uses state and centroidal matrix to compute the velocity of the center of mass
                                //Other option is to use the center of mass Jacobian of invKinematics
 
+    Eigen::VectorXd WBC(Eigen::VectorXd state, double t);
+
 private:
     double simulationTime_ = 4;
     double t_ = 0;
@@ -37,5 +40,6 @@ private:
     Eigen::VectorXd state_; // 60 dimention vector of the current configuration and velocity
     Robot& robot_;
     Dynamics dyn_;
+    Kinematics kin_;
     Eigen::Vector3d comVel_ = Eigen::Vector3d::Zero();
 };

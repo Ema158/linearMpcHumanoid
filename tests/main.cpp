@@ -10,6 +10,7 @@
 
 int main() {
     Robot nao;
+    Kinematics ik;
     
     Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);
     Rf(1) = -0.05;
@@ -20,8 +21,8 @@ int main() {
     com(2) = 0.26;
     com(1) = 0.01;
     com(0) = -0.005;
-    Eigen::VectorXd desOp = ik::desiredOperationalState(nao,Rf,Lf,com);
-    ik::compute(nao, desOp);
+    Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
+    ik.compute(nao, desOp);
     
     Controller controller(nao);
     controller.stand();

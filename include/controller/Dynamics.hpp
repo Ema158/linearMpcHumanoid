@@ -2,6 +2,7 @@
 #include "controller/Robot.hpp"
 #include "controller/generalizedFunctions.hpp"
 #include "controller/linkInertia.hpp"
+#include "controller/invKinematics.hpp"
 #include <Eigen/Dense>
 #include <vector>
 
@@ -29,6 +30,13 @@ class Dynamics{
     void centroidalMatrixAndBias(const Robot& robot); //computes the centroidal matrix of the centroidal model
 
     Eigen::MatrixXd spatialInertiaMatrix(const linkInertia& link); //compues the spatial inertia 6x6 matrix of a frame
+
+    void forwardNewtonEuler(const Robot& robot,
+        const Eigen::VectorxXd qD,
+        const Eigen::VectorXd qDD,
+        std::vector<Eigen::VectorXd>& vel,
+        std::vector<Eigen::VectorXd>& acc,
+        std::vector<Eigen::VectorXd>& f);
 
     Eigen::VectorXd C_;
     Eigen::VectorXd Cg_; //Vector C without gravity, needed for centroidal dynamics

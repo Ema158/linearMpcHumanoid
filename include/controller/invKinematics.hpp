@@ -9,7 +9,12 @@
 // Joint values for the arms and head (12)
 // Orientation of the base in euler angles (3)
 // Position of the center of mass (3)
-namespace ik{
+class Kinematics{
+    public:
+    Kinematics() = default;
+
+    void computeAll(Robot& robot);
+
     Eigen::VectorXd desiredOperationalState(
         const Robot& robot,
         const Eigen::VectorXd& Rf,
@@ -53,4 +58,11 @@ namespace ik{
 
     std::vector<Eigen::Matrix4d> parentTransMatrix(
         const std::vector<Eigen::Matrix4d>& T);
-}
+
+    static void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);
+
+    private:
+        Eigen::MatrixXd JR_;
+        Eigen::MatrixXd JL_;
+        Eigen::MatrixXd JFeet_;
+};

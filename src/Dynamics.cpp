@@ -36,7 +36,10 @@ Eigen::VectorXd Dynamics::computeC(
    g(5) = isGravity*9.81;
    
    std::vector<Eigen::MatrixXd> X = robot.getX();
+
    Eigen::VectorXd qD = robot.getJointsVelocity();
+   Kinematics::swapBaseVelocityAndRefToWorldFrame(X[0], qD);
+
    std::vector<int> act = robot.actuatedFrames();
    std::vector<int> ant = robot.parentFrame();
    
@@ -141,4 +144,14 @@ void Dynamics::computeAll(const Robot& robot)
     Cg_ = computeC(robot,false);
     computeM(robot);
     centroidalMatrixAndBias(robot);
+}
+
+void Dynamics::forwardNewtonEuler(const Robot& robot,
+        const Eigen::VectorxXd qD,
+        const Eigen::VectorXd qDD,
+        std::vector<Eigen::VectorXd>& vel,
+        std::vector<Eigen::VectorXd>& acc,
+        std::vector<Eigen::VectorXd>& f)
+{
+
 }

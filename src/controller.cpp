@@ -31,7 +31,7 @@ void Controller::stand()
      while(std::abs(clock.getTime() - simulationTime_) > 0.01)
      {
         dyn_.computeAll(robot_); //Computes M,C,AG,AGpqp
-
+        kin_.computeAll(robot_); //Computes Jacobian and Jacobian bias Jpqp
         //com_xy << robot_.getCoM()(0),robot_.getCoM()(1); //Current position center of mass
         computeComVelocity(state_.segment(robot_.getNumJoints(),robot_.getNumJoints())); //Current velocity center of mass
         //comVel_xy << comVel_(0),comVel_(1);
@@ -47,20 +47,20 @@ void Controller::stand()
 
 void Controller::computeComVelocity(Eigen::VectorXd v)
 {
-    // The order of the velocity variables in the centroidal matrix is [angular vel, linear velocity]
-    // v is in the order [linear velocity, angular velocity]. We need to change
-    Eigen::Vector3d temp = v.segment(0,3);
-    v.segment(0,3) = v.segment(3,3);
-    v.segment(3,3) = temp;
-
-    //Also base velocity in v is wrt to world frame
-    //In centroidal matrix base velocity in v is wrt base frame
-    v.segment(0,6) = robot_.getX()[0]*v.segment(0,6);
+    Kinematics::swapBaseVelocityAndRefToWorldFrame(robot_.getX()[0], v);
 
     comVel_ = dyn_.getAG().block(3,0,3,robot_.getNumJoints())*v; //AG*v returns linear and angular momentum
                                                                 //We just need linear
 
     comVel_ = comVel_/robot_.getMass(); //We divided by mass to obtain velocity                                                                
+}
+
+Eigen::VectorXd Controller::WBC(Eigen::VectorXd state, double t)
+{
+    Eigen::VectorXd qDD = Eigen::VectorXd::Zero(2*robot_.getNumJoints());
+
+    
+    return qDD;
 }
 
 
