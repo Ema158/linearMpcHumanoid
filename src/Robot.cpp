@@ -31,7 +31,10 @@ Robot::Robot(){
              1,0,0;
     Lf_q0_ = Rf_q0_; //Rotation matrix of left foot frame when q=0
 
-    v_ = Eigen::VectorXd::Zero(getNumJoints());
+    v_ = Eigen::VectorXd::Zero(getNumJoints()); //vector of joints velocities
+
+    S_.resize(6);
+    S_ << 0,0,1,0,0,0;
 }
 
 void Robot::forwardKinematics(){

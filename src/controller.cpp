@@ -24,8 +24,7 @@ void Controller::stand()
      Mpc3dLip mpc(clock.getTimeStep(), timeHorizon, robot_.getCoM()(2));
      ZMP zmp(Task::Stand,simulationTime_,dt_,SupportFoot::Double);
      Eigen::Vector2d com_xy;
-     Eigen::Vector2d comVel_xy;
-     Eigen::Vector2d vel_xy = Eigen::Vector2d::Zero(2);
+     Eigen::Vector2d comVel_xy = Eigen::Vector2d::Zero();
      Eigen::VectorXd newState = Eigen::VectorXd::Zero(6);
      com_xy << robot_.getCoM()(0),robot_.getCoM()(1);
      while(std::abs(clock.getTime() - simulationTime_) > 0.01)

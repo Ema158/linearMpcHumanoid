@@ -17,6 +17,7 @@ class Dynamics{
     const Eigen::MatrixXd& getM() const {return M_;}
     const Eigen::MatrixXd& getAG() const {return AG_;}
     const Eigen::VectorXd& getAGpqp() const {return AGpqp_;}
+    const Eigen::VectorXd& getJpqp() const {return Jpqp_;}
     
     private:
     void allSpatialInertiaMatrices(const Robot& robot); //computes the spatial inertia 6x6 matrices of all frames
@@ -32,11 +33,18 @@ class Dynamics{
     Eigen::MatrixXd spatialInertiaMatrix(const linkInertia& link); //compues the spatial inertia 6x6 matrix of a frame
 
     void forwardNewtonEuler(const Robot& robot,
-        const Eigen::VectorxXd qD,
+        const Eigen::VectorXd qD,
         const Eigen::VectorXd qDD,
         std::vector<Eigen::VectorXd>& vel,
         std::vector<Eigen::VectorXd>& acc,
         std::vector<Eigen::VectorXd>& f);
+
+    void backwardNewtonEuler(const Robot& robot,
+        std::vector<Eigen::VectorXd>& f,
+        Eigen::VectorXd& tau);
+
+    Eigen::VectorXd computeJpqpFrame(const Robot& robot,
+        int frame);
 
     Eigen::VectorXd C_;
     Eigen::VectorXd Cg_; //Vector C without gravity, needed for centroidal dynamics
@@ -44,4 +52,7 @@ class Dynamics{
     Eigen::MatrixXd AG_;
     Eigen::VectorXd AGpqp_;
     std::vector<Eigen::MatrixXd> I_;
+    Eigen::VectorXd JpqpR_;
+    Eigen::VectorXd JpqpL_;
+    Eigen::VectorXd Jpqp_;
 };

@@ -25,15 +25,15 @@ public:
     
     int getNumBodies() const {return numBodies;}
     
-    Eigen::VectorXd getJoints() const {return q_;}
+    const Eigen::VectorXd& getJoints() const {return q_;}
     
-    Eigen::VectorXd getJointsVelocity() const {return v_;}
+    const Eigen::VectorXd& getJointsVelocity() const {return v_;}
     
-    std::vector<Eigen::Matrix4d> getT() const {return T_;} 
+    const std::vector<Eigen::Matrix4d>& getT() const {return T_;} 
     
-    std::vector<linkInertia> getLinks() const {return links_;}
+    const std::vector<linkInertia>& getLinks() const {return links_;}
     
-    Eigen::Vector3d getCoM() const {return CoM_;}
+    const Eigen::Vector3d& getCoM() const {return CoM_;}
     
     double getMass() const {return mass_;}
     
@@ -41,7 +41,9 @@ public:
     
     Eigen::Matrix3d getLf_q0() const {return Lf_q0_;}
     
-    std::vector<Eigen::MatrixXd> getX() const {return X_;}
+    const std::vector<Eigen::MatrixXd>& getX() const {return X_;}
+
+    Eigen::VectorXd getS() const {return S_;}
     
     void computeCoM();
     
@@ -67,6 +69,7 @@ private:
     double mass_;
     Eigen::Matrix3d Rf_q0_; //Rotation matrix of right foot frame when q=0
     Eigen::Matrix3d Lf_q0_; //Rotation matrix of left foot frame when q=0 
+    Eigen::VectorXd S_;
 };
 
 Eigen::VectorXd initialConfiguration();

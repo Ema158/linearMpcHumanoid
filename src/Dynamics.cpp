@@ -31,47 +31,31 @@ Eigen::VectorXd Dynamics::computeC(
     const Robot& robot,
     bool isGravity)
 {
-   Eigen::VectorXd C = Eigen::VectorXd::Zero(robot.getNumJoints());
-   Eigen::VectorXd g = Eigen::VectorXd::Zero(6); //gravity acc of the base wrt to world frame
-   g(5) = isGravity*9.81;
-   
-   std::vector<Eigen::MatrixXd> X = robot.getX();
+    Eigen::VectorXd C = Eigen::VectorXd::Zero(robot.getNumJoints());
+    Eigen::VectorXd g = Eigen::VectorXd::Zero(6); //gravity acc of the base wrt to world frame
+    g(5) = isGravity*9.81;
+    
+    std::vector<Eigen::MatrixXd> X = robot.getX();
 
-   Eigen::VectorXd qD = robot.getJointsVelocity();
-   Kinematics::swapBaseVelocityAndRefToWorldFrame(X[0], qD);
+    Eigen::VectorXd qD = robot.getJointsVelocity();
+    Eigen::VectorXd qDD = Eigen::VectorXd::Zero(robot.getNumJoints()); // to compute C zero joints accelerations are assumed
+    Kinematics::swapBaseVelocityAndRefToWorldFrame(X[0], qD);
 
-   std::vector<int> act = robot.actuatedFrames();
-   std::vector<int> ant = robot.parentFrame();
-   
-   Eigen::VectorXd S = Eigen::VectorXd::Zero(6);
-   S << 0,0,1,0,0,0;
+    std::vector<Eigen::VectorXd> vel; //spatial velocity of each frame
+    vel.resize(robot.getNumFrames());
+    std::vector<Eigen::VectorXd> acc; //spatial acceleration of each frame
+    acc.resize(robot.getNumFrames());
+    std::vector<Eigen::VectorXd> f; //spatial force of each frame
+    f.resize(robot.getNumFrames());
 
-   std::vector<Eigen::VectorXd> vel; //spatial velocity of each frame
-   vel.resize(robot.getNumFrames());
-   std::vector<Eigen::VectorXd> acc; //spatial acceleration of each frame
-   acc.resize(robot.getNumFrames());
-   std::vector<Eigen::VectorXd> f; //spatial force of each frame
-   f.resize(robot.getNumFrames());
-
-   //Base velocity and spatial force
-   vel[0] = qD.segment(0,6); 
-   acc[0] = X[0]*g; // transform the acc wrt world frame to wrt base frame 
-   f[0] = I_[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I_[0]*vel[0];
-   //Forward pass Newton-Euler  
-   for (int i=1;i<robot.getNumFrames();i++){
-        if (act[i]!=0){
-            vel[i] = X[i]*vel[ant[i]] + S*qD[act[i] + BASEDOF - 1];
-            acc[i] = X[i]*acc[ant[i]] + spatialCrossMatrix(vel[i])*S*qD[act[i] + BASEDOF - 1];
-            f[i] = I_[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I_[i]*vel[i];
-        }
-    }
-    //Backward pass
-    for(int i=robot.getNumFrames()-1;i>0;i--){
-        if (act[i]!=0){
-            C(act[i] + BASEDOF - 1) = (S.transpose())*f[i];
-            f[ant[i]] = f[ant[i]] + X[i].transpose()*f[i];          
-        }
-    }
+    //Base velocity and spatial force
+    vel[0] = qD.segment(0,6); 
+    acc[0] = X[0]*g; // transform the acc wrt world frame to wrt base frame 
+    f[0] = I_[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I_[0]*vel[0];
+    //Forward pass Newton-Euler  
+    forwardNewtonEuler(robot, qD, qDD, vel, acc, f);
+    backwardNewtonEuler(robot, f, C);
+    
     C.segment(0,6) = f[0]; //Base joint is a 6x6 dof, thats why for base joint S = identity
     return C;
 }
@@ -137,6 +121,83 @@ void Dynamics::centroidalMatrixAndBias(
     AGpqp_ = X1G*Cg_.segment(0,6);//Centroidal Bias
 }
 
+
+void Dynamics::forwardNewtonEuler(const Robot& robot,
+        const Eigen::VectorXd qD,
+        const Eigen::VectorXd qDD,
+        std::vector<Eigen::VectorXd>& vel,
+        std::vector<Eigen::VectorXd>& acc,
+        std::vector<Eigen::VectorXd>& f)
+{
+    std::vector<Eigen::MatrixXd> X = robot.getX(); // 
+    std::vector<int> act = robot.actuatedFrames();
+    std::vector<int> ant = robot.parentFrame();
+    Eigen::VectorXd S = robot.getS();
+    for (int i=1;i<robot.getNumFrames();i++){
+        if (act[i]!=0){
+            vel[i] = X[i]*vel[ant[i]] + S*qD(act[i] + BASEDOF - 1);
+            acc[i] = X[i]*acc[ant[i]] + spatialCrossMatrix(vel[i])*S*qD(act[i] + BASEDOF - 1);
+            f[i] = I_[i]*acc[i] + spatialCrossMatrixForce(vel[i])*I_[i]*vel[i];
+        }
+        else{
+            vel[i] = X[i]*vel[ant[i]];
+            acc[i] = X[i]*acc[ant[i]]; //No force beacause in not actuaded frames mass=0
+        }
+    }
+}
+
+void Dynamics::backwardNewtonEuler(const Robot& robot,
+    std::vector<Eigen::VectorXd>& f,
+    Eigen::VectorXd& tau)
+{
+    std::vector<Eigen::MatrixXd> X = robot.getX(); // 
+    std::vector<int> act = robot.actuatedFrames();
+    std::vector<int> ant = robot.parentFrame();
+    Eigen::VectorXd S = robot.getS();
+
+    for(int i=robot.getNumFrames()-1;i>0;i--){
+        if (act[i]!=0){
+            tau(act[i] + BASEDOF - 1) = (S.transpose())*f[i];
+            f[ant[i]] = f[ant[i]] + X[i].transpose()*f[i];          
+        }
+    }
+}    
+
+Eigen::VectorXd Dynamics::computeJpqpFrame(const Robot& robot,
+    int frame)
+{
+    Eigen::VectorXd Jpqp = Eigen::VectorXd::Zero(6);
+    std::vector<Eigen::MatrixXd> X = robot.getX();
+
+    Eigen::VectorXd qD = robot.getJointsVelocity();
+    Eigen::VectorXd qDD = Eigen::VectorXd::Zero(robot.getNumJoints()); // to compute C zero joints accelerations are assumed
+    Kinematics::swapBaseVelocityAndRefToWorldFrame(X[0], qD);
+
+    std::vector<Eigen::VectorXd> vel; //spatial velocity of each frame
+    vel.resize(robot.getNumFrames());
+    std::vector<Eigen::VectorXd> acc; //spatial acceleration of each frame
+    acc.resize(robot.getNumFrames());
+    std::vector<Eigen::VectorXd> f; //spatial force of each frame
+    f.resize(robot.getNumFrames());
+
+    //Base velocity and spatial force
+    vel[0] = qD.segment(0,6); // velocity of the base
+    acc[0] = Eigen::VectorXd::Zero(6); // zero base acceleration
+    f[0] = I_[0]*acc[0] + spatialCrossMatrixForce(vel[0])*I_[0]*vel[0];
+    //Forward pass Newton-Euler  
+    forwardNewtonEuler(robot, qD, qDD, vel, acc, f);
+
+    Jpqp = acc[frame]; //spatial acceleration of frame wrt frame
+
+    //We need spatial acceleration wrt world frame because state is wrt world frame
+    //We need to rotate using 0^R_frame
+    Eigen::MatrixXd Rot6x6_frame = Eigen::MatrixXd(6,6);
+    Rot6x6_frame.block(0,0,3,3) = robot.getT()[frame].block(0,0,3,3);
+    Rot6x6_frame.block(3,3,3,3) = robot.getT()[frame].block(0,0,3,3);
+    Jpqp = Rot6x6_frame*Jpqp;
+    return Jpqp;
+}
+
 void Dynamics::computeAll(const Robot& robot)
 {
     allSpatialInertiaMatrices(robot);
@@ -144,14 +205,9 @@ void Dynamics::computeAll(const Robot& robot)
     Cg_ = computeC(robot,false);
     computeM(robot);
     centroidalMatrixAndBias(robot);
-}
-
-void Dynamics::forwardNewtonEuler(const Robot& robot,
-        const Eigen::VectorxXd qD,
-        const Eigen::VectorXd qDD,
-        std::vector<Eigen::VectorXd>& vel,
-        std::vector<Eigen::VectorXd>& acc,
-        std::vector<Eigen::VectorXd>& f)
-{
-
+    JpqpR_ = computeJpqpFrame(robot,7);
+    JpqpL_ = computeJpqpFrame(robot,14);
+    Jpqp_.resize(12);
+    Jpqp_.segment(0,6) = JpqpR_;
+    Jpqp_.segment(6,6) = JpqpL_;
 }
