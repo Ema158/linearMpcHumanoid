@@ -7,6 +7,7 @@
 #include "controller/Dynamics.hpp"
 #include "controller/Clock.hpp"
 #include "controller/invKinematics.hpp"
+#include "controller/generalizedFunctions.hpp"
 
 /*
 state = [q, v]
@@ -66,7 +67,7 @@ private:
     int numCoeff_ = 4; //Number of coeff at each vertex (number of sides of pyramid friction)
     int numReactionForces_ = 12; // Number of reaction forces at current moment 12->DS 6->SS 0->noContact    
     
-    //--------------------------------PD gains used in the reference accelerations
+    //--------------------------------PD gains used in the reference accelerations-------------------------
     //PD for the joints
     Eigen::MatrixXd KpJoints_ = 300*Eigen::MatrixXd::Identity(30, 30);
     Eigen::MatrixXd KdJoints_ = 34*Eigen::MatrixXd::Identity(30, 30);
@@ -81,4 +82,14 @@ private:
     
     const Eigen::VectorXd PDJointsAcc();
     const Eigen::VectorXd PDMomentumAcc();
+    const Eigen::VectorXd PDFeetAcc();
+
+    //---------------------------------QP Weights for the WBC-----------------------------------------
+    double wCoML_ = 0; //linear momentum weight
+    double wCoMK_ = 10000; //angular momentum rate weight
+    double wBasePos_ = 10; //base position
+    double wBaseAng_ = 10; //base attitude
+    double wJoints_ = 1; //rotational joints
+    double wForce_ = 1; //reaction forces
+    double wFoot_ = 100000; //position and orientation of both feet
 };

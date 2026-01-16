@@ -81,6 +81,35 @@ Eigen::VectorXd Controller::WBC(double t)
 
     Eigen::VectorXd qppRef = PDJointsAcc();
     Eigen::VectorXd hGpRef = PDMomentumAcc();
+    Eigen::VectorXd footAccRef = PDFeetAcc();
+
+    Eigen::MatrixXd WJ = Eigen::MatrixXd(robot_.getNumJoints(), robot_.getNumJoints()); //Weight matrix of joints (including base)
+    WJ.block(0,0,3,3) = wBasePos_*Eigen::Matrix3d::Identity(); // Weights base position
+    WJ.block(3,3,3,3) = wBaseAng_*Eigen::Matrix3d::Identity(); // Weights base orientation
+    WJ.block(6,6,robot_.getNumActualJoints(),robot_.getNumActualJoints()) 
+        = wJoints_*Eigen::MatrixXd(robot_.getNumActualJoints(),robot_.getNumActualJoints()); // Weights rotational joints
+
+    Eigen::MatrixXd WC = Eigen::MatrixXd(6,6); //Weight matrix centroidal momentum
+    WC.block(0,0,3,3) = wCoMK_*Eigen::Matrix3d::Identity(); //Angular momentum
+    WC.block(3,3,3,3) = wCoML_*Eigen::Matrix3d::Identity(); //Linear momentum
+
+    Eigen::MatrixXd WFeet = wFoot_*Eigen::MatrixXd::Identity(12,12); //Weight matrix feet position and orientation
+
+    Eigen::MatrixXd WForce = wForce_*Eigen::MatrixXd::Identity(12,12); //Weight matrix reaction spatial forces
+
+    //Hessian construction
+    Eigen::MatrixXd H = Eigen::MatrixXd::Zero(numDesVariables_, numDesVariables_); //Hessian qp
+    H.block(0,0,robot_.getNumJoints(),robot_.getNumJoints()) = 
+        (dyn_.getAG().transpose())*WC*(dyn_.getAG()) + (kin_.getFeetJacobian().transpose())*WFeet*(kin_.getFeetJacobian());
+
+    H.block(robot_.getNumJoints(),robot_.getNumJoints(),12,12) = WForce;
+
+    //gradient construction
+    Eigen::VectorXd g = Eigen::VectorXd::Zero(numDesVariables_);
+    g.segment(0,robot_.getNumJoints()) = (dyn_.getAGpqp().transpose())*WC*dyn_.getAG() 
+            - (hGpRef.transpose())*WC*(dyn_.getAG()) - (qppRef.transpose())*WJ 
+            + (dyn_.getJpqp().transpose())*WFeet*(kin_.getFeetJacobian()) - (footAccRef.transpose())*WFeet*(kin_.getFeetJacobian());
+
     return qDD;
 }
 
@@ -167,5 +196,32 @@ const Eigen::VectorXd Controller::PDMomentumAcc()
     hGpRef.segment(0,3) = KdMom_*(comAngMom_ - Eigen::Vector3d::Zero()); //Zero desired angular momentum
     return hGpRef;
 }
+
+const::Eigen::VectorXd Controller::PDFeetAcc()
+{
+    Eigen::VectorXd footAccRef = Eigen::VectorXd::Zero(12);
+    Eigen::VectorXd v = robot_.getJointsVelocity();
+    //Change base velocity wrt world frame -> base velocity wrt base frame
+    //Beacause Jacobian is wrt base frame
+    Kinematics::swapBaseVelocityAndRefToWorldFrame(robot_.getX()[0], v);
+    
+    //Compute linear and angular velocity of the feet
+    Eigen::VectorXd velR = kin_.getRightFootJacobian()*v;
+    Eigen::VectorXd velL = kin_.getLeftFootJacobian()*v;
+
+    //Desired orientation
+    Eigen::Matrix3d RdesR = robot_.getRf_q0();
+    Eigen::Matrix3d RdesL = robot_.getLf_q0();
+
+    //Current Rotation matrix error in orientation
+    Eigen::Matrix3d errR = RdesR.transpose()*robot_.getT()[7].block(0,0,3,3);
+    Eigen::Matrix3d errL = RdesL.transpose()*robot_.getT()[14].block(0,0,3,3);
+
+    //Current rotation axis error
+    Eigen::Vector3d eR = -RdesR*rotMatToAxisAngle(errR);
+    Eigen::Vector3d eL = -RdesL*rotMatToAxisAngle(errL);
+    return footAccRef;
+}
+
 
 

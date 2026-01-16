@@ -70,3 +70,32 @@ Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& rpy)
 
     return R;
 }
+
+Eigen::Vector3d rotMatToAxisAngle(const Eigen::Matrix3d& R)
+{
+    // Trace and clamp for numerical robustness
+    double tr = R.trace();
+    double c = std::max(-1.0, std::min(1.0, (tr - 1.0) / 2.0));
+    double phi = std::acos(c);
+
+    // Skew-symmetric part
+    Eigen::Matrix3d Skew = R - R.transpose();
+
+    // vee operator
+    Eigen::Vector3d v;
+    v << Skew(2,1),
+         Skew(0,2),
+         Skew(1,0);
+
+    Eigen::Vector3d r;
+    if (phi < 1e-6){
+        // Small-angle approximation: sin(phi) ≈ phi
+        r = 0.5 * v;
+    }
+    else{
+        // General case
+        r = (phi / (2.0 * std::sin(phi))) * v;
+    }
+
+    return r;
+}
