@@ -54,7 +54,10 @@ public:
     std::vector<Eigen::Matrix4d> parentTransMatrix(const std::vector<Eigen::Matrix4d>& T);
 
     void allVelocityMatrices(const std::vector<Eigen::Matrix4d>& piTi);
+
+    const std::vector<Eigen::Vector3d>& getFootVertices() const {return footVertices_;} 
  
+    const Eigen::VectorXd desiredPosture();
 private:
     int numJoints = NUM_JOINTS;
     int numActualJoints = NUM_ACTUAL_JOINTS;
@@ -69,10 +72,13 @@ private:
     double mass_;
     Eigen::Matrix3d Rf_q0_; //Rotation matrix of right foot frame when q=0
     Eigen::Matrix3d Lf_q0_; //Rotation matrix of left foot frame when q=0 
-    Eigen::VectorXd S_;
+    Eigen::VectorXd S_; //screw axis joint rotation
+    std::vector<Eigen::Vector3d> footVertices_;
+
+    
 };
 
 Eigen::VectorXd initialConfiguration();
-Eigen::VectorXd desiredPosture();
+
 std::vector<Eigen::Matrix4d> matTrans(std::vector<double> theta);
 

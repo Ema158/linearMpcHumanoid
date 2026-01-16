@@ -61,6 +61,10 @@ class Kinematics{
 
     static void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);
 
+    const Eigen::MatrixXd& getRightFootJacobian() const {return JR_;}
+    const Eigen::MatrixXd& getLeftFootJacobian() const {return JL_;}
+    const Eigen::MatrixXd& getFeetJacobian() const {return JFeet_;}
+
     private:
         Eigen::MatrixXd JR_;
         Eigen::MatrixXd JL_;
