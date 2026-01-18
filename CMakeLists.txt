@@ -20,6 +20,7 @@ add_library(controller_core
     src/Dynamics.cpp
     src/mpcLinearPendulum.cpp
     src/zmpGeneration.cpp
+    src/footRefTrajectory.cpp
 )
 
 target_include_directories(controller_core PUBLIC

@@ -210,8 +210,8 @@ const::Eigen::VectorXd Controller::PDFeetAcc()
     Eigen::VectorXd velL = kin_.getLeftFootJacobian()*v;
 
     //Desired orientation
-    Eigen::Matrix3d RdesR = robot_.getRf_q0();
-    Eigen::Matrix3d RdesL = robot_.getLf_q0();
+    Eigen::Matrix3d RdesR = robot_.getRf_q0(); //Constant desired orientation parallel to ground
+    Eigen::Matrix3d RdesL = robot_.getLf_q0(); //Constant desired orientation parallel to ground
 
     //Current Rotation matrix error in orientation
     Eigen::Matrix3d errR = RdesR.transpose()*robot_.getT()[7].block(0,0,3,3);

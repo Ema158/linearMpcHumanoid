@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include <cmath>
+#include <iostream>
 
 Eigen::Matrix3d crossMatrix(Eigen::Vector3d v); //Convert a 3d vector into a skew symmetric matrix (cross product)
 
@@ -21,3 +22,9 @@ Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d w); //Transformation 
 Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& eulerAngles);     
 
 Eigen::Vector3d rotMatToAxisAngle(const Eigen::Matrix3d& R);
+
+Eigen::VectorXd findPolyCoeff(Eigen::MatrixXd Pos, Eigen::MatrixXd Vel, Eigen::MatrixXd Acc);
+
+double polyval(const Eigen::VectorXd& poly, double x);
+
+const Eigen::VectorXd polyder(Eigen::VectorXd& poly);
