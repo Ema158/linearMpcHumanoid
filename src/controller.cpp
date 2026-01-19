@@ -23,6 +23,13 @@ Controller::Controller(Robot& robot,
     frictionMatrix_.block(0,1,3,1) << 0,mu_,1;
     frictionMatrix_.block(0,2,3,1) << -mu_,0,1;
     frictionMatrix_.block(0,3,3,1) << 0,-mu_,1;
+
+    //QP options
+    qpOASES::Options options;
+    options.setToMPC();
+    options.printLevel = qpOASES::PL_NONE;
+    qp_.setOptions(options);
+
 }
 
 void Controller::stand() 
@@ -72,13 +79,6 @@ Eigen::VectorXd Controller::WBC(double t)
     A1.block(0,robot_.getNumJoints(),6,12) = -JT.block(0,0,6,12);
     Eigen::VectorXd b1 = -dyn_.getC().segment(0,6);
 
-    //Friction constraints
-    Eigen::MatrixXd Aeq = Eigen::MatrixXd::Zero(6,numDesVariables_);
-    Eigen::MatrixXd Aineq = Eigen::MatrixXd::Zero(2*numCoeff_,numDesVariables_);
-    Eigen::VectorXd beq = Eigen::VectorXd::Zero(6);
-    Eigen::VectorXd bineq = Eigen::VectorXd::Zero(2*numCoeff_);
-    frictionConstraints(Aeq,beq,Aineq,bineq);
-
     Eigen::VectorXd qppRef = PDJointsAcc();
     Eigen::VectorXd hGpRef = PDMomentumAcc();
     Eigen::VectorXd footAccRef = PDFeetAcc();
@@ -110,6 +110,7 @@ Eigen::VectorXd Controller::WBC(double t)
             - (hGpRef.transpose())*WC*(dyn_.getAG()) - (qppRef.transpose())*WJ 
             + (dyn_.getJpqp().transpose())*WFeet*(kin_.getFeetJacobian()) - (footAccRef.transpose())*WFeet*(kin_.getFeetJacobian());
 
+    qDD = solveQP(qp_, qp_initialized_, H, g);
     return qDD;
 }
 
@@ -168,7 +169,7 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
 
     //------------------------------------------Inequality-----------------------------------------
     Aineq.block(0, robot_.getNumJoints() + numReactionForces_, 2*numCoeff_, 2*numCoeff_)
-                                            = -Eigen::MatrixXd::Identity(2*numCoeff_,2*numCoeff_); // -cij
+                                            = Eigen::MatrixXd::Identity(2*numCoeff_,2*numCoeff_); // cij
                                             
     bineq = Eigen::VectorXd::Zero(2*numCoeff_);                                    
 }
@@ -221,6 +222,54 @@ const::Eigen::VectorXd Controller::PDFeetAcc()
     Eigen::Vector3d eR = -RdesR*rotMatToAxisAngle(errR);
     Eigen::Vector3d eL = -RdesL*rotMatToAxisAngle(errL);
     return footAccRef;
+}
+
+Eigen::VectorXd Controller::solveQP(
+    qpOASES::QProblem& qp,
+    bool& initialized,
+    const Eigen::MatrixXd& H,
+    const Eigen::VectorXd& g)
+{
+    Eigen::MatrixXd Hsym = 0.5 * (H + H.transpose()); //guarantee symmetric and positive definite
+
+    //Friction constraints
+    Eigen::MatrixXd Aeq = Eigen::MatrixXd::Zero(6,numDesVariables_);
+    Eigen::MatrixXd Aineq = Eigen::MatrixXd::Zero(2*numCoeff_,numDesVariables_);
+    Eigen::VectorXd beq = Eigen::VectorXd::Zero(6);
+    Eigen::VectorXd bineq = Eigen::VectorXd::Zero(2*numCoeff_);
+    frictionConstraints(Aeq,beq,Aineq,bineq);
+
+    //Express the constraints according to qpOASES documentation
+    Eigen::MatrixXd A(numConstraints_, numDesVariables_);
+    Eigen::VectorXd lbA(numConstraints_);
+    Eigen::VectorXd ubA(numConstraints_);
+
+    //Inequality constraints
+    A.block(0,0,numIneqConstraints_, numDesVariables_) = Aineq;
+    lbA.segment(0,numIneqConstraints_) = bineq;
+    ubA.segment(0, numIneqConstraints_).setConstant(qpOASES::INFTY); //positive infinite
+
+    //Equality Constraints 
+    A.block(numIneqConstraints_,0, numEqConstraints_, numDesVariables_) = Aeq;
+    lbA.segment(numIneqConstraints_, numEqConstraints_) = beq;
+    ubA.segment(numIneqConstraints_, numEqConstraints_) = beq; 
+
+    int nWSR = 50;
+
+    if (!initialized) {
+        qp.init(Hsym.data(), g.data(),
+                A.data(), nullptr, nullptr,
+                lbA.data(), ubA.data(), nWSR);
+        initialized = true;
+    } else {
+        qp.hotstart(g.data(),
+                    nullptr, nullptr,
+                    lbA.data(), ubA.data(), nWSR);
+    }
+
+    Eigen::VectorXd qpp(numDesVariables_);
+    qp.getPrimalSolution(qpp.data());
+    return qpp;
 }
 
 

@@ -1,5 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
+#include <qpOASES.hpp>
 #include "controller/Robot.hpp"
 #include "controller/mpcLinearPendulum.hpp"
 #include "controller/zmpGeneration.hpp"
@@ -61,6 +62,7 @@ private:
 
     int numEqConstraints_ = 6 + 6 + 6; //Dynamics constraints + friction constraints RFoot + friction constraints LFoot
     int numIneqConstraints_ = 16 + 16; //ci>0, 16 for Right foot coef, 16 for left foot coef
+    int numConstraints_ = numEqConstraints_ + numIneqConstraints_;
     int numDesVariables_ = 30 + 6 + 6 + 16 + 16; //joints acc(including base) + spatial force RFoot + spatial force LFoot
                                                  //...+ RFoot Coef + LFoot Coef
     int numVertex_ = 4; //Vertices in each foot
@@ -92,4 +94,12 @@ private:
     double wJoints_ = 1; //rotational joints
     double wForce_ = 1; //reaction forces
     double wFoot_ = 100000; //position and orientation of both feet
+
+    qpOASES::QProblem qp_;
+    bool qp_initialized_ = false;
+
+    Eigen::VectorXd solveQP(qpOASES::QProblem& qp,
+    bool& initialized,
+    const Eigen::MatrixXd& H,
+    const Eigen::VectorXd& g);
 };
