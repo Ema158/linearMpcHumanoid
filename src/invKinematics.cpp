@@ -2,6 +2,12 @@
 #include <iostream>
 #define BASEDOF 6
 
+Kinematics::Kinematics()
+{
+    JR_.resize(6,30);
+    JL_.resize(6,30);
+    JFeet_.resize(6,30);
+}
 
 Eigen::VectorXd Kinematics::desiredOperationalState(
     const Robot& robot,
@@ -88,6 +94,9 @@ Eigen::MatrixXd Kinematics::feetJacobian(
     //The complete Jacobian is the concatenation of the Jacobians of each foot
     JFeet.block(0,0,6,dof) = JacR;
     JFeet.block(6,0,6,dof) = JacL;
+
+    //std::cout<<JFeet.block(0,0,6,12)<<std::endl<<std::endl;
+    //std::cout<<JFeet.block(6,0,6,12)<<std::endl<<std::endl;
     return JFeet;
 }
 
@@ -258,11 +267,9 @@ Eigen::Vector3d Kinematics::rotMatrixToEulerAngles(
 void Kinematics::computeAll(Robot& robot)
 {
     std::vector<Eigen::MatrixXd> X = robot.getX();
-    JR_ = frameJacobian(X,7,robot);
-    JL_ = frameJacobian(X,14,robot);
-    JFeet_.resize(12,robot.getNumJoints());
-    JFeet_.block(0,0,6,robot.getNumJoints()) = JR_;
-    JFeet_.block(6,0,6,robot.getNumJoints()) = JL_;
+    JFeet_ = feetJacobian(robot);
+    JR_ = JFeet_.block(0,0,6,robot.getNumJoints());
+    JL_ = JFeet_.block(6,0,6,robot.getNumJoints());
 }
 
 void Kinematics::swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v)

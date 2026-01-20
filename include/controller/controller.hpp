@@ -9,6 +9,7 @@
 #include "controller/Clock.hpp"
 #include "controller/invKinematics.hpp"
 #include "controller/generalizedFunctions.hpp"
+#include <memory>
 
 /*
 state = [q, v]
@@ -59,9 +60,13 @@ private:
     
     Eigen::MatrixXd frictionMatrix_ = Eigen::MatrixXd::Zero(3,4);
     double mu_ = 0.7; //friction coeff
+    
+    int numDynamicsEqConstraints_ = 6;
+    int numFrictionEqConstraints_ = 12; //Both feet in contact with the ground
+    int numFrictionIneqConstraints_ = 16 + 16; //Both feet in contact with the ground
 
-    int numEqConstraints_ = 6 + 6 + 6; //Dynamics constraints + friction constraints RFoot + friction constraints LFoot
-    int numIneqConstraints_ = 16 + 16; //ci>0, 16 for Right foot coef, 16 for left foot coef
+    int numEqConstraints_ = numDynamicsEqConstraints_ + numFrictionEqConstraints_; 
+    int numIneqConstraints_ = numFrictionIneqConstraints_; //ci>0, 16 for Right foot coef, 16 for left foot coef
     int numConstraints_ = numEqConstraints_ + numIneqConstraints_;
     int numDesVariables_ = 30 + 6 + 6 + 16 + 16; //joints acc(including base) + spatial force RFoot + spatial force LFoot
                                                  //...+ RFoot Coef + LFoot Coef
@@ -87,8 +92,8 @@ private:
     const Eigen::VectorXd PDFeetAcc();
 
     //---------------------------------QP Weights for the WBC-----------------------------------------
-    double wCoML_ = 0; //linear momentum weight
-    double wCoMK_ = 10000; //angular momentum rate weight
+    double wCoML_ = 4000; //linear momentum weight
+    double wCoMK_ = 0; //angular momentum rate weight
     double wBasePos_ = 10; //base position
     double wBaseAng_ = 10; //base attitude
     double wJoints_ = 1; //rotational joints
@@ -96,6 +101,7 @@ private:
     double wFoot_ = 100000; //position and orientation of both feet
 
     qpOASES::QProblem qp_;
+    //std::unique_ptr<qpOASES::QProblem> qp_;
     bool qp_initialized_ = false;
 
     Eigen::VectorXd solveQP(qpOASES::QProblem& qp,

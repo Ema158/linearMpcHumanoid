@@ -21,9 +21,10 @@ int main() {
 
     com(2) = 0.26;
     com(1) = 0.01;
-    com(0) = -0.005;
+    com(0) = 0;
     Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
     ik.compute(nao, desOp);
+    //std::cout<<nao.getJoints()<<std::endl;
     
     double timeHorizon = 0.5;
     Mpc3dLip mpc(clock.getTimeStep(), timeHorizon, nao.getCoM()(2));

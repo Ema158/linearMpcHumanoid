@@ -11,7 +11,7 @@
 // Position of the center of mass (3)
 class Kinematics{
     public:
-    Kinematics() = default;
+    Kinematics();
 
     void computeAll(Robot& robot);
 

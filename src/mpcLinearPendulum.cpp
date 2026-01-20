@@ -105,6 +105,9 @@ Eigen::VectorXd Mpc3dLip::compute(
     xk = A_*xk + B_*accx;
     yk = A_*yk + B_*accy;
     Xref << xk,accx,yk,accy;
+    
+    xRef_ << xk,accx;
+    yRef_ << yk,accy;
 
     return Xref;
 }
