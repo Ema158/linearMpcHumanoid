@@ -101,7 +101,6 @@ private:
     double wFoot_ = 100000; //position and orientation of both feet
 
     qpOASES::QProblem qp_;
-    //std::unique_ptr<qpOASES::QProblem> qp_;
     bool qp_initialized_ = false;
 
     Eigen::VectorXd solveQP(qpOASES::QProblem& qp,

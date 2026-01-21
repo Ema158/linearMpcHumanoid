@@ -126,6 +126,7 @@ Eigen::VectorXd Controller::WBC(double t)
     //std::cout<<WJ.block(12,12,12,12)<<std::endl << std::endl;
     //H = Eigen::MatrixXd::Identity(42,42);
     //g = Eigen::VectorXd::Zero(42);
+    //std::cout<<g<<std::endl;
     qDD = solveQP(qp_, qp_initialized_, H, g);
     return qDD;
 }
@@ -343,57 +344,32 @@ Eigen::VectorXd Controller::solveQP(
     ubA.segment(numIneqConstraints_ + numFrictionEqConstraints_, numDynamicsEqConstraints_) = b1;*/
     
     //Express the constraints according to qpOASES documentation
-    Eigen::MatrixXd A(numDynamicsEqConstraints_, 42);
+    //Eigen::MatrixXd A(numDynamicsEqConstraints_, 42);
     Eigen::VectorXd lbA(numDynamicsEqConstraints_);
     Eigen::VectorXd ubA(numDynamicsEqConstraints_);
     
     //Equality Constraints 
     //Dynamics
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> A; //CONSTRAINTS MATRIX IN QPOASES MUST BE ROW MAJOR,
+                                                                            // EIGEN MATRIX IS COLUMN MAJOR BY DEFAULT
+    A.setZero(numDynamicsEqConstraints_, 42);
+
     A.block(0, 0, numDynamicsEqConstraints_, 42) = A1;
     lbA.segment(0, numDynamicsEqConstraints_) = b1;
     ubA.segment(0, numDynamicsEqConstraints_) = b1;
     int nWSR = 100;
     qpOASES::returnValue status;
-    //double eps = 1e-6;
-    //Hsym.diagonal().array() += eps;
-    
-    //if (!initialized) {
-        status = qp.init(Hsym.data(), g.data(),
-                A.data(), nullptr, nullptr,
-                lbA.data(), ubA.data(), nWSR);
-        initialized = true;
-    //} else {
-     //   status = qp.hotstart(g.data(),
-     //               nullptr, nullptr,
-     //               lbA.data(), ubA.data(), nWSR);
-    //}
-
-    if (qp.isInfeasible())
-    {
-        std::cerr << "[QP] Problem is INFEASIBLE" << std::endl;
-    }
-    else if (qp.isUnbounded())
-    {
-        std::cerr << "[QP] Problem is UNBOUNDED" << std::endl;
-    }
-    else
-    {
-        std::cerr << "[QP] Other failure, returnValue = " << status << std::endl;
-    }
-
-    auto finiteCheck = [](const auto& M, const std::string& name)
-    {
-        if (!M.allFinite())
-            std::cerr << "[QP] " << name << " contains NaN or Inf!" << std::endl;
-    };
-
-    finiteCheck(Hsym, "H");
-    finiteCheck(g,    "g");
-    finiteCheck(A,    "A");
-    finiteCheck(lbA,  "lbA");
-    finiteCheck(ubA,  "ubA");
-    Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(Hsym);
-std::cout << "min eigenvalue = " << es.eigenvalues().minCoeff() << std::endl;
+    //std::cout<<Hsym.block(0,0,12,12)<<std::endl<<std::endl;
+    //std::cout<<Hsym.block(12,12,12,12)<<std::endl<<std::endl; 
+    //std::cout<<b1<<std::endl;
+    //std::cout<<A.block(0,0,6,12)<<std::endl<<std::endl;
+    //std::cout<<A.block(0,12,6,12)<<std::endl<<std::endl;
+    //std::cout<<A.block(0,24,6,12)<<std::endl<<std::endl;
+    //std::cout<<A.block(0,36,6,6)<<std::endl<<std::endl;
+    status = qp.init(Hsym.data(), g.data(),
+            A.data(), nullptr, nullptr,
+            lbA.data(), ubA.data(), nWSR);
+    //std::cout<<status<<std::endl;
     qp.getPrimalSolution(qpp.data());
     return qpp;
 }
