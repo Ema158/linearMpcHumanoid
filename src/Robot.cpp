@@ -37,9 +37,9 @@ Robot::Robot(){
     S_ << 0,0,1,0,0,0;
 
     footVertices_.resize(4);
-    footVertices_[0] << 0.1,-0.025,0; //Upper right
-    footVertices_[1] << 0.1, 0.025,0; //Upper left
-    footVertices_[2] << -0.05,-0.025,0; //Lowe right
+    footVertices_[0] << 0.1, 0.025,0; //Upper right
+    footVertices_[1] << 0.1, -0.025,0; //Upper left
+    footVertices_[2] << -0.05, 0.025,0; //Lowe right
     footVertices_[3] << -0.05,-0.025,0; //Lower left
 }
 
@@ -256,8 +256,8 @@ const Eigen::VectorXd Robot::desiredPosture(){
     qDes << -0.0185,0.00,0.282,0,0,0, //base
             0,0,-0.5,0.8,-0.3,0, //right leg
             0,0,-0.5,0.8,-0.3,0, //left leg
-            1.6,0,pi/2,0.4,0, //right arm
-            -1.6,0,-pi/2,0.4,0, //left arm
+            1.6,0,0,0,0, //right arm
+            -1.6,0,0,0,0, //left arm
             0,0; //head
     return qDes;
 }

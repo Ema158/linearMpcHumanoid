@@ -9,18 +9,19 @@
 #include "controller/Clock.hpp"
 #include "controller/invKinematics.hpp"
 #include "controller/generalizedFunctions.hpp"
-#include <memory>
+#include "controller/footRefTrajectory.hpp"
+#include "rk4.hpp"
 
 /*
 state = [q, v]
-q = [0p,0eta,qJ]
-    0p ->   base position wrt world frame
-    0eta -> base orientation wrt world frame (Euler angles)
+q = [0p1,0eta1,qJ]
+    0p1 ->   base position wrt world frame
+    0eta1 -> base orientation wrt world frame (Euler angles)
     qJ ->   actual joints
 
-v = [0v,0w, qDJ]
-    0v ->  linear velocity of the base
-    0w ->  angular velocity of the base
+v = [0v1,0w1, qDJ]
+    0v1 ->  linear velocity of the base (spatial velocity)
+    0w1 ->  angular velocity of the base (spatial velocity)
     qDJ -> actual joints velocity
 */
 
@@ -34,7 +35,7 @@ public:
                                 //And the angular momentum of the center of mass
                                //Other option is to use the center of mass Jacobian of invKinematics
 
-    Eigen::VectorXd WBC(double t);
+    Eigen::VectorXd WBC(const Eigen::VectorXd& x, double t);
 
     void frictionConstraints(Eigen::MatrixXd& Aeq,
         Eigen::VectorXd& beq,
@@ -42,7 +43,7 @@ public:
         Eigen::VectorXd& bineq);
 
 private:
-    double simulationTime_ = 4;
+    double simulationTime_ = 2.5;
     double t_ = 0;
     double dt_ = 0.01;
     
@@ -89,7 +90,7 @@ private:
     
     const Eigen::VectorXd PDJointsAcc();
     const Eigen::VectorXd PDMomentumAcc();
-    const Eigen::VectorXd PDFeetAcc();
+    const Eigen::VectorXd PDFeetAcc(double t);
 
     //---------------------------------QP Weights for the WBC-----------------------------------------
     double wCoML_ = 4000; //linear momentum weight
@@ -107,4 +108,8 @@ private:
     bool& initialized,
     const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g);
+
+    //-----------------------------------Foot
+    std::vector<Eigen::VectorXd> rFCoeff_;
+    std::vector<Eigen::VectorXd> lFCoeff_;
 };

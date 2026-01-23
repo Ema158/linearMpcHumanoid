@@ -16,7 +16,7 @@ Eigen::MatrixXd spatialCrossMatrix(Eigen::VectorXd v);//given a 6x1 spatial velo
 Eigen::MatrixXd spatialCrossMatrixForce(Eigen::VectorXd v);//given a 6x1 spatial velocity
                                                        //computes the 6x6 matrix equal to the force spatial cross product  
                                                        
-Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d w); //Transformation matrix that transform angular velocity...
+Eigen::Matrix3d matrixAngularVelToEulerDot(Eigen::Vector3d eta); //Transformation matrix that transform angular velocity...
                                                               //to euler angles derivatives
 
 Eigen::Matrix3d eulerAnglesToSO3(const Eigen::Vector3d& eulerAngles);     
@@ -27,4 +27,4 @@ Eigen::VectorXd findPolyCoeff(Eigen::MatrixXd Pos, Eigen::MatrixXd Vel, Eigen::M
 
 double polyval(const Eigen::VectorXd& poly, double x);
 
-const Eigen::VectorXd polyder(Eigen::VectorXd& poly);
+const Eigen::VectorXd polyder(const Eigen::VectorXd& poly);

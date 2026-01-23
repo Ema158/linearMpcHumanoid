@@ -47,6 +47,9 @@ void Kinematics::compute(
         e = desOp - Q;
         errorCriterion = e.cwiseAbs().maxCoeff();
     }
+    if(iter>=maxIter){
+        std::cout<<"Inv Kinematics no solution founded"<<std::endl;
+    }
 }
 
 Eigen::VectorXd Kinematics::operationalState(
@@ -264,14 +267,6 @@ Eigen::Vector3d Kinematics::rotMatrixToEulerAngles(
     return eta;
 }
 
-void Kinematics::computeAll(Robot& robot)
-{
-    std::vector<Eigen::MatrixXd> X = robot.getX();
-    JFeet_ = feetJacobian(robot);
-    JR_ = JFeet_.block(0,0,6,robot.getNumJoints());
-    JL_ = JFeet_.block(6,0,6,robot.getNumJoints());
-}
-
 void Kinematics::swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v)
 {
     // v is in the order [linear velocity, angular velocity]. We need to change
@@ -283,5 +278,12 @@ void Kinematics::swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, 
     //Also base velocity in v is wrt to world frame
     //In centroidal matrix base velocity in v is wrt base frame
     v.segment(0,6) = X01*v.segment(0,6);
+}
+
+void Kinematics::computeAll(Robot& robot)
+{
+    JFeet_ = feetJacobian(robot);
+    JR_ = JFeet_.block(0,0,6,robot.getNumJoints());
+    JL_ = JFeet_.block(6,0,6,robot.getNumJoints());
 }
 

@@ -21,7 +21,7 @@ int main() {
 
     com(2) = 0.26;
     com(1) = 0.01;
-    com(0) = 0;
+    com(0) = 0.00;
     Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
     ik.compute(nao, desOp);
     //std::cout<<nao.getJoints()<<std::endl;

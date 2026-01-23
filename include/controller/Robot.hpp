@@ -51,6 +51,8 @@ public:
     
     void updateState(const Eigen::VectorXd& q_new);
 
+    void setJointsVelocity(const Eigen::VectorXd& v_new) {v_ = v_new;}
+
     std::vector<Eigen::Matrix4d> parentTransMatrix(const std::vector<Eigen::Matrix4d>& T);
 
     void allVelocityMatrices(const std::vector<Eigen::Matrix4d>& piTi);
@@ -73,9 +75,7 @@ private:
     Eigen::Matrix3d Rf_q0_; //Rotation matrix of right foot frame when q=0
     Eigen::Matrix3d Lf_q0_; //Rotation matrix of left foot frame when q=0 
     Eigen::VectorXd S_; //screw axis joint rotation
-    std::vector<Eigen::Vector3d> footVertices_;
-
-    
+    std::vector<Eigen::Vector3d> footVertices_;  
 };
 
 Eigen::VectorXd initialConfiguration();
