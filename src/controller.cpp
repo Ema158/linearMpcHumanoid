@@ -63,18 +63,13 @@ void Controller::stand()
      com_xy << robot_.getCoM()(0),robot_.getCoM()(1);
      while(std::abs(clock.getTime() - simulationTime_) > 0.01)
      {
+        auto start = std::chrono::high_resolution_clock::now();
         dyn_.computeAll(robot_); //Computes M,C,AG,AGpqp
-        //std::cout<<dyn_.getAGpqp() << std::endl;
         kin_.computeAll(robot_); //Computes Jacobian and Jacobian bias Jpqp
         com_xy << robot_.getCoM()(0),robot_.getCoM()(1); //Current position center of mass
         computeComMomentum(state_.segment(n,n)); //Current velocity center of mass
         comVel_xy << comVel_(0),comVel_(1);
-        //std::cout<<com_xy<<std::endl;
-        //std::cout<<comVel_xy<<std::endl<<std::endl;
         newState = mpc_.compute(com_xy,comVel_xy,zmp.getZmpXRef(),zmp.getZmpYRef(), clock.getTime());
-        //com_xy << newState(0),newState(3);
-        //comVel_xy << newState(1),newState(4);
-
         state_ = rk4Step(
             [&](const Eigen::VectorXd& state_, double t)
             {
@@ -84,12 +79,13 @@ void Controller::stand()
             clock.getTime(),
             clock.getTimeStep()
             );
-        //Eigen::VectorXd xD = WBC(state_, clock.getTime());
-        //std::cout<<xD<<std::endl<<std::endl;
         //std::cout<<state_<<std::endl<<std::endl;
         robot_.updateState(state_.segment(0,n));
         robot_.setJointsVelocity(state_.segment(n,n));
         clock.step();
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Execution time: " << elapsed.count() << " seconds\n";
      }   
 }
 
@@ -116,11 +112,8 @@ Eigen::VectorXd Controller::WBC(const Eigen::VectorXd& state, double t)
     qD = state.segment(robot_.getNumJoints(), robot_.getNumJoints());
 
     Eigen::VectorXd qppRef = PDJointsAcc();
-    //std::cout<<qppRef<<std::endl<<std::endl;
     Eigen::VectorXd hGpRef = PDMomentumAcc();
-    //std::cout<<hGpRef<<std::endl<<std::endl;
     Eigen::VectorXd footAccRef = PDFeetAcc(t);
-    //std::cout<<footAccRef<<std::endl<<std::endl;
 
     Eigen::MatrixXd WJ = Eigen::MatrixXd::Zero(robot_.getNumJoints(), robot_.getNumJoints()); //Weight matrix of joints (including base)
     WJ.block(0,0,3,3) = wBasePos_*Eigen::Matrix3d::Identity(); // Weights base position
@@ -311,12 +304,6 @@ const Eigen::VectorXd Controller::PDMomentumAcc()
     Eigen::Vector3d comAccRef;
     comAccRef << mpc_.getXRef()(2), mpc_.getYRef()(2), 0;
     
-    /*std::cout<<comPosRef<<std::endl<<std::endl;
-    std::cout<<comPos_<<std::endl<<std::endl;
-    std::cout<<comVelRef<<std::endl<<std::endl;
-    std::cout<<comVel_<<std::endl<<std::endl;
-    std::cout<<comAccRef<<std::endl<<std::endl;*/
-    
     hGpRef.segment(3,3) = robot_.getMass()*(KpMom_*(comPosRef - comPos_) + KdMom_*(comVelRef - comVel_) + comAccRef); //linear momentum
     hGpRef.segment(0,3) = KdMom_*(Eigen::Vector3d::Zero() - comAngMom_); //Zero desired angular momentum
     return hGpRef;
@@ -384,7 +371,7 @@ const::Eigen::VectorXd Controller::PDFeetAcc(double t)
 }
 
 Eigen::VectorXd Controller::solveQP(
-    qpOASES::QProblem& qp,
+    qpOASES::SQProblem& qp,
     bool& initialized,
     const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g)
@@ -435,9 +422,18 @@ Eigen::VectorXd Controller::solveQP(
 
     int nWSR = 500;
     qpOASES::returnValue status;
-    status = qp.init(Hsym.data(), g.data(),
+    if(!qp_initialized_){
+        status = qp.init(Hsym.data(), g.data(),
             A.data(), nullptr, nullptr,
             lbA.data(), ubA.data(), nWSR);
+            qp_initialized_ = true;
+    }
+    else{
+        status = qp.hotstart(Hsym.data(), g.data(),
+            A.data(), nullptr, nullptr,
+            lbA.data(), ubA.data(), nWSR);
+    }
+    
     if (status != qpOASES::SUCCESSFUL_RETURN)
     {
     std::cerr << "QP failed, status = " << status << std::endl;

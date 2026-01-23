@@ -11,6 +11,7 @@
 #include "controller/generalizedFunctions.hpp"
 #include "controller/footRefTrajectory.hpp"
 #include "rk4.hpp"
+#include <chrono>
 
 /*
 state = [q, v]
@@ -101,10 +102,10 @@ private:
     double wForce_ = 1; //reaction forces
     double wFoot_ = 100000; //position and orientation of both feet
 
-    qpOASES::QProblem qp_;
+    qpOASES::SQProblem qp_;
     bool qp_initialized_ = false;
 
-    Eigen::VectorXd solveQP(qpOASES::QProblem& qp,
+    Eigen::VectorXd solveQP(qpOASES::SQProblem& qp,
     bool& initialized,
     const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g);
