@@ -25,6 +25,12 @@ v = [0v1,0w1, qDJ]
     0w1 ->  angular velocity of the base (spatial velocity)
     qDJ -> actual joints velocity
 */
+struct WBCOutput
+    {
+        Eigen::VectorXd qpp;
+        Eigen::VectorXd f;
+        Eigen::VectorXd tau;
+};
 
 class Controller {
 public:
@@ -36,7 +42,9 @@ public:
                                 //And the angular momentum of the center of mass
                                //Other option is to use the center of mass Jacobian of invKinematics
 
-    Eigen::VectorXd WBC(const Eigen::VectorXd& x, double t);
+    WBCOutput WBC(const Eigen::VectorXd& state, double t);
+
+    Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t);
 
     void frictionConstraints(Eigen::MatrixXd& Aeq,
         Eigen::VectorXd& beq,
@@ -110,7 +118,11 @@ private:
     const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g);
 
+    
+    
+
     //-----------------------------------Foot
     std::vector<Eigen::VectorXd> rFCoeff_;
     std::vector<Eigen::VectorXd> lFCoeff_;
 };
+

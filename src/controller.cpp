@@ -70,22 +70,26 @@ void Controller::stand()
         computeComMomentum(state_.segment(n,n)); //Current velocity center of mass
         comVel_xy << comVel_(0),comVel_(1);
         newState = mpc_.compute(com_xy,comVel_xy,zmp.getZmpXRef(),zmp.getZmpYRef(), clock.getTime());
+
+        WBCOutput out = WBC(state_, clock.getTime());
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Execution time: " << elapsed.count() << " seconds\n";
+        tau_ = out.tau;
         state_ = rk4Step(
             [&](const Eigen::VectorXd& state_, double t)
             {
-                return WBC(state_, clock.getTime());
+                return dynamics(state_, clock.getTime());
             },
             state_,
             clock.getTime(),
             clock.getTimeStep()
             );
-        //std::cout<<state_<<std::endl<<std::endl;
+        //std::cout<<state_<<std::endl;
         robot_.updateState(state_.segment(0,n));
         robot_.setJointsVelocity(state_.segment(n,n));
         clock.step();
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = end - start;
-        std::cout << "Execution time: " << elapsed.count() << " seconds\n";
+        
      }   
 }
 
@@ -101,15 +105,15 @@ void Controller::computeComMomentum(Eigen::VectorXd v)
     comAngMom_ = comSpatialMomentum.segment(0,3);
 }
 
-Eigen::VectorXd Controller::WBC(const Eigen::VectorXd& state, double t)
+WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
 {
-    Eigen::VectorXd xD = Eigen::VectorXd::Zero(2*robot_.getNumJoints()); //state derivative
-    Eigen::VectorXd qD = Eigen::VectorXd::Zero(robot_.getNumJoints()); // velocity to integrate
-    Eigen::VectorXd qDD = Eigen::VectorXd::Zero(robot_.getNumJoints()); // acceleration to integrate
-    Eigen::VectorXd q = Eigen::VectorXd::Zero(robot_.getNumJoints());
+    int n = robot_.getNumJoints();
+    Eigen::VectorXd qDD(n); // joints acceleration 
+    Eigen::VectorXd tau(n-6); // torques only at actual joints, not floating base
+    Eigen::VectorXd forces(numReactionForces_); // reaction forces and moments
+    //Eigen::VectorXd q = Eigen::VectorXd::Zero(robot_.getNumJoints());
 
-    q = state.segment(0,robot_.getNumJoints());
-    qD = state.segment(robot_.getNumJoints(), robot_.getNumJoints());
+    //q = state.segment(0,robot_.getNumJoints());
 
     Eigen::VectorXd qppRef = PDJointsAcc();
     Eigen::VectorXd hGpRef = PDMomentumAcc();
@@ -147,29 +151,20 @@ Eigen::VectorXd Controller::WBC(const Eigen::VectorXd& state, double t)
             + (kin_.getFeetJacobian().transpose())*WFeet*(dyn_.getJpqp()) 
             - (kin_.getFeetJacobian().transpose())*WFeet*(footAccRef);
 
-    Eigen::VectorXd x = solveQP(qp_, qp_initialized_, H, g);
-    
+    Eigen::VectorXd qpSolution = solveQP(qp_, qp_initialized_, H, g);
+    forces = qpSolution.segment(n,numReactionForces_);
+    Eigen::VectorXd generalizedForces(n);
+    generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n));// + dyn_.getC() 
+                                        //- (kin_.getFeetJacobian().transpose())*x.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
+    tau = generalizedForces.segment(6,n-6);
     //x have the base spatial acceleration wrt to base frame, before integreated It has to be wrt world frame
-    Eigen::VectorXd accBaseWrtWrld = robot_.getX()[0].colPivHouseholderQr().solve(x.segment(0,6));
+    Eigen::VectorXd accBaseWrtWrld = robot_.getX()[0].colPivHouseholderQr().solve(qpSolution.segment(0,6));
     //Also the order of linear-angular base velocity is inverted in the generalized velocity vector
     qDD.segment(0,3) = accBaseWrtWrld.segment(3,3);
     qDD.segment(3,3) = accBaseWrtWrld.segment(0,3);
-    qDD.segment(6,robot_.getNumActualJoints()) = x.segment(6,robot_.getNumActualJoints());
+    qDD.segment(6,robot_.getNumActualJoints()) = qpSolution.segment(6,robot_.getNumActualJoints());
 
-    //The linear and angular velocities in the state vector are spatial velocities
-    //Before integrating linear velocity must change to classical definition
-    //Definition of 0v1: is the linear velocity of a point joined to body 1 that currently coincide with the origin of frame 0
-    //We transform this linear velocity with the classical lineal velocity transformation
-    qD.segment(0,3) = qD.segment(0,3) + crossMatrix(qD.segment(3,3))*q.segment(0,3); // 0v1 (classic) = 0v1(spatial) + 0w1 X 0p1
-    // Classical and spatial angular velocity are the same
-
-    //The rotation of the base is represented as Euler Angles
-    //We need to transform angular velocity to Euler Angles rate before integrating
-    qD.segment(3,3) =  matrixAngularVelToEulerDot(q.segment(3,3))*qD.segment(3,3); // 0eta1 = Omega*0w1
-
-    xD.segment(0,robot_.getNumJoints()) = qD;
-    xD.segment(robot_.getNumJoints(), robot_.getNumJoints()) = qDD;
-    return xD;
+    return { qDD, forces, tau};
 }
 
 void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
@@ -443,6 +438,33 @@ Eigen::VectorXd Controller::solveQP(
 
 
     return qpp;
+}
+
+Eigen::VectorXd Controller::dynamics(const Eigen::VectorXd& state, double t)
+{
+    const int n = robot_.getNumJoints();
+    Eigen::VectorXd q = state.segment(0,n);
+    Eigen::VectorXd qD = state.segment(n,n);
+    WBCOutput out = WBC(state, t);
+
+    //The linear and angular velocities in the state vector are spatial velocities
+    //Before integrating linear velocity must change to classical definition
+    //Definition of 0v1: is the linear velocity of a point joined to body 1 that currently coincide with the origin of frame 0
+    //We transform this linear velocity with the classical lineal velocity transformation
+    qD.segment(0,3) = qD.segment(0,3) + crossMatrix(qD.segment(3,3))*q.segment(0,3); // 0v1 (classic) = 0v1(spatial) + 0w1 X 0p1
+    // Classical and spatial angular velocity are the same
+
+    //The rotation of the base is represented as Euler Angles
+    //We need to transform angular velocity to Euler Angles rate before integrating
+    qD.segment(3,3) =  matrixAngularVelToEulerDot(q.segment(3,3))*qD.segment(3,3); // 0eta1 = Omega*0w1
+
+    Eigen::VectorXd xp(2 * n);
+    xp.head(n) = qD;   // q̇
+    xp.tail(n) = out.qpp;                // q̈
+
+    
+    return xp;
+
 }
 
 
