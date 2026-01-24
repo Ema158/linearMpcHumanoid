@@ -1,5 +1,4 @@
-#include "controller/Robot.hpp"
-#include <iostream>
+#include "linearMpcHumanoid/robotInfo/Robot.hpp"
 #define BASEDOF 6
 constexpr double pi = 3.14159265358979323846;
 

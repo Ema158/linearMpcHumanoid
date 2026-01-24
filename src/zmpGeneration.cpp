@@ -1,4 +1,4 @@
-#include "controller/zmpGeneration.hpp"
+#include "linearMpcHumanoid/trajectories/zmpGeneration.hpp"
 #include <iostream>
 
 ZMP::ZMP(

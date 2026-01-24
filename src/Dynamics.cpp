@@ -1,5 +1,4 @@
-#include <controller/Dynamics.hpp>
-#include <iostream>
+#include "linearMpcHumanoid/controller/Dynamics.hpp"
 #define BASEDOF 6
 
 Eigen::MatrixXd Dynamics::spatialInertiaMatrix(

@@ -2,9 +2,9 @@
 #pragma once
 #include <Eigen/Dense>
 #include <cmath>
-#include "linkInertia.hpp"
-#include "robotParameters.hpp"
-#include "generalizedFunctions.hpp"
+#include "linearMpcHumanoid/robotInfo/linkInertia.hpp"
+#include "linearMpcHumanoid/robotInfo/robotParameters.hpp"
+#include "linearMpcHumanoid/general/generalizedFunctions.hpp"
 #define NUM_JOINTS 30 //24 real joints plus 6 of the floating base
 #define NUM_ACTUAL_JOINTS 24 // 24 rotational joints
 #define NUM_FRAMES 28 //1 for base, 24 for each joint, 2 extra feet, 1 extra head

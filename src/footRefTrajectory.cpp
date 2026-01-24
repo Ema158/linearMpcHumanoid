@@ -1,4 +1,4 @@
-#include "controller/footRefTrajectory.hpp"
+#include "linearMpcHumanoid/trajectories/footRefTrajectory.hpp"
 #include <iostream>
 
 std::vector<Eigen::VectorXd> footCoeffTrajectory(const Eigen::Vector3d& currentPos,

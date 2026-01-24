@@ -1,8 +1,8 @@
 #pragma once
-#include "controller/Robot.hpp"
-#include "controller/generalizedFunctions.hpp"
-#include "controller/linkInertia.hpp"
-#include "controller/invKinematics.hpp"
+#include "linearMpcHumanoid/robotInfo/Robot.hpp"
+#include "linearMpcHumanoid/robotInfo/linkInertia.hpp"
+#include "linearMpcHumanoid/general/generalizedFunctions.hpp"
+#include "linearMpcHumanoid/controller/invKinematics.hpp"
 #include <Eigen/Dense>
 #include <vector>
 

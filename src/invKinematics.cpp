@@ -1,5 +1,4 @@
-#include "controller/invKinematics.hpp"
-#include <iostream>
+#include "linearMpcHumanoid/controller/invKinematics.hpp"
 #define BASEDOF 6
 
 Kinematics::Kinematics()

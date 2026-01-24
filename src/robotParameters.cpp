@@ -2,7 +2,7 @@
 //Information taken from aldebaran documentation
 //Each frame has its own parameters
 //There are frames with no body associated and thats why their data is zero
-#include "controller/robotParameters.hpp"
+#include "linearMpcHumanoid/robotInfo/robotParameters.hpp"
 #include <Eigen/Dense>
 
 std::vector<linkInertia> createNaoParameters(){

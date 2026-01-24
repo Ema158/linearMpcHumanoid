@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <Eigen/Dense>
-#include "generalizedFunctions.hpp"
+#include "linearMpcHumanoid/general/generalizedFunctions.hpp"
 
 //Computes the polynomial coefficientss for position, velocity and acceleration of the foot
 //It assumes a 3th order polynomial for x and y trajectories

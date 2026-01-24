@@ -1,8 +1,9 @@
 #pragma once
 #include <Eigen/Dense>
-#include "controller/Robot.hpp"
-#include "controller/generalizedFunctions.hpp"
+#include "linearMpcHumanoid/robotInfo/Robot.hpp"
+#include "linearMpcHumanoid/general/generalizedFunctions.hpp"
 #include <cmath>
+#include <iostream>
 
 //Operational space is composed by 
 // Position and orientation of each foot (12)

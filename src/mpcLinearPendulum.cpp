@@ -1,5 +1,4 @@
-#include "controller/mpcLinearPendulum.hpp"
-#include <iostream>
+#include "linearMpcHumanoid/controller/mpcLinearPendulum.hpp"
 
 Mpc3dLip::Mpc3dLip()
     : qpx_(horizon_ + 1, 0),
@@ -76,7 +75,7 @@ void Mpc3dLip::initialize()
     qpy_.setOptions(options);
 }
 
-Eigen::VectorXd Mpc3dLip::compute(
+void Mpc3dLip::compute(
     const Eigen::Vector2d& posCom,
     const Eigen::Vector2d& velCom,
     const Eigen::VectorXd& zmpXRef,
@@ -104,12 +103,9 @@ Eigen::VectorXd Mpc3dLip::compute(
     //Compute the center of mass position and velocity
     xk = A_*xk + B_*accx;
     yk = A_*yk + B_*accy;
-    Xref << xk,accx,yk,accy;
     
     xRef_ << xk,accx;
     yRef_ << yk,accy;
-
-    return Xref;
 }
 
 double solve1DQP(

@@ -1,6 +1,6 @@
 #pragma once
 #include <Eigen/Dense>
-#include "controller/Task.hpp"
+#include "linearMpcHumanoid/general/Task.hpp"
 
 class ZMP{
 public:

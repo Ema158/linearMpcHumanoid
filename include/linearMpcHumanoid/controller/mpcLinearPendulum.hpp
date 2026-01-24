@@ -23,7 +23,7 @@ public:
     Eigen::Vector3d getYRef() const {return yRef_;}
     const double getZCom() const {return zCom_;}
 
-    Eigen::VectorXd compute(
+    void compute(
         const Eigen::Vector2d& posCom,
         const Eigen::Vector2d& velCom,
         const Eigen::VectorXd& zmpXRef,

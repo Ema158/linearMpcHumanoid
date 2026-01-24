@@ -1,6 +1,6 @@
 #pragma once
 #include <vector> 
-#include "controller/linkInertia.hpp"
+#include "linearMpcHumanoid/robotInfo/linkInertia.hpp"
 
 std::vector<linkInertia> createNaoParameters();
 

@@ -1,13 +1,19 @@
-#include "controller/controller.hpp"
+#include "linearMpcHumanoid/controller/controller.hpp"
 #include <iostream>
 #include <cmath>
 
 Controller::Controller(Robot& robot,
-    Mpc3dLip& mpc)
+    Mpc3dLip& mpc,
+    std::vector<Eigen::VectorXd>& rFCoeff,
+    std::vector<Eigen::VectorXd>& lFCoeff
+    )
     :
     robot_(robot),
     mpc_(mpc), 
-    qp_(numDesVariables_,numConstraints_)
+    qp_(numDesVariables_,numConstraints_),
+    zmp_(Task::Stand,simulationTime_,dt_,SupportFoot::Double),
+    rFCoeff_(rFCoeff),
+    lFCoeff_(lFCoeff)
 {
     std::cout<<"Controller Initiated" << std::endl;
     std::cout<<"Initial conditions of the center of mass: " << "c = " << robot_.getCoM()(0);
@@ -38,60 +44,45 @@ Controller::Controller(Robot& robot,
     lFCoeff_.resize(3);
 }
 
-void Controller::stand() 
+ControllerOutput Controller::standStep(const ControllerInput& in)
 {
-     int n = robot_.getNumJoints();
-     Clock clock;
-     ZMP zmp(Task::Stand,simulationTime_,dt_,SupportFoot::Double);
+    int n = robot_.getNumJoints();
 
-     Eigen::Vector3d currentPos;
-     Eigen::Vector3d desPos;
-     currentPos << 0, -0.05, 0;
-     desPos << 0, -0.05, 0;
-     double stepHeight = 0;
-     rFCoeff_ = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime_);
+    //Update state
+    robot_.updateState(in.q);
+    robot_.setJointsVelocity(in.dq);
 
-     //std::cout<<rFCoeff_[0]<<std::endl;
-     currentPos << 0, 0.05, 0;
-     desPos << 0, 0.05, 0;
-     stepHeight = 0;
-     lFCoeff_ = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime_);
+    //Update M,C, Jacobians, etc
+    dyn_.computeAll(robot_);
+    kin_.computeAll(robot_);
 
-     Eigen::Vector2d com_xy;
-     Eigen::Vector2d comVel_xy = Eigen::Vector2d::Zero();
-     Eigen::VectorXd newState = Eigen::VectorXd::Zero(6);
-     com_xy << robot_.getCoM()(0),robot_.getCoM()(1);
-     while(std::abs(clock.getTime() - simulationTime_) > 0.01)
-     {
-        auto start = std::chrono::high_resolution_clock::now();
-        dyn_.computeAll(robot_); //Computes M,C,AG,AGpqp
-        kin_.computeAll(robot_); //Computes Jacobian and Jacobian bias Jpqp
-        com_xy << robot_.getCoM()(0),robot_.getCoM()(1); //Current position center of mass
-        computeComMomentum(state_.segment(n,n)); //Current velocity center of mass
-        comVel_xy << comVel_(0),comVel_(1);
-        newState = mpc_.compute(com_xy,comVel_xy,zmp.getZmpXRef(),zmp.getZmpYRef(), clock.getTime());
+    //Update CoM state for LIP model
+    Eigen::Vector2d com_xy;
+    Eigen::Vector2d comVel_xy;
+    com_xy << robot_.getCoM()(0), robot_.getCoM()(1);
+    computeComMomentum(in.dq);
+    comVel_xy << comVel_(0), comVel_(1);
 
-        WBCOutput out = WBC(state_, clock.getTime());
-        auto end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed = end - start;
-        std::cout << "Execution time: " << elapsed.count() << " seconds\n";
-        tau_ = out.tau;
-        state_ = rk4Step(
-            [&](const Eigen::VectorXd& state_, double t)
-            {
-                return dynamics(state_, clock.getTime());
-            },
-            state_,
-            clock.getTime(),
-            clock.getTimeStep()
-            );
-        //std::cout<<state_<<std::endl;
-        robot_.updateState(state_.segment(0,n));
-        robot_.setJointsVelocity(state_.segment(n,n));
-        clock.step();
-        
-     }   
+    //Mpc lip model
+    mpc_.compute(
+        com_xy,
+        comVel_xy,
+        zmp_.getZmpXRef(),
+        zmp_.getZmpYRef(),
+        in.time
+    );
+
+    //WBC
+    state_.segment(0, n) = in.q;
+    state_.segment(n, n) = in.dq;
+    WBCOutput out = WBC(state_, in.time);
+
+    ControllerOutput result;
+    result.tau = out.tau;
+    return result;    
 }
+
+
 
 void Controller::computeComMomentum(Eigen::VectorXd v)
 {
@@ -435,37 +426,10 @@ Eigen::VectorXd Controller::solveQP(
     // optionally return previous solution or zero
     }
     qp.getPrimalSolution(qpp.data());
-
-
     return qpp;
 }
 
-Eigen::VectorXd Controller::dynamics(const Eigen::VectorXd& state, double t)
-{
-    const int n = robot_.getNumJoints();
-    Eigen::VectorXd q = state.segment(0,n);
-    Eigen::VectorXd qD = state.segment(n,n);
-    WBCOutput out = WBC(state, t);
 
-    //The linear and angular velocities in the state vector are spatial velocities
-    //Before integrating linear velocity must change to classical definition
-    //Definition of 0v1: is the linear velocity of a point joined to body 1 that currently coincide with the origin of frame 0
-    //We transform this linear velocity with the classical lineal velocity transformation
-    qD.segment(0,3) = qD.segment(0,3) + crossMatrix(qD.segment(3,3))*q.segment(0,3); // 0v1 (classic) = 0v1(spatial) + 0w1 X 0p1
-    // Classical and spatial angular velocity are the same
-
-    //The rotation of the base is represented as Euler Angles
-    //We need to transform angular velocity to Euler Angles rate before integrating
-    qD.segment(3,3) =  matrixAngularVelToEulerDot(q.segment(3,3))*qD.segment(3,3); // 0eta1 = Omega*0w1
-
-    Eigen::VectorXd xp(2 * n);
-    xp.head(n) = qD;   // q̇
-    xp.tail(n) = out.qpp;                // q̈
-
-    
-    return xp;
-
-}
 
 
 

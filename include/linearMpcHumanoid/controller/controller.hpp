@@ -1,17 +1,21 @@
 #pragma once
 #include <Eigen/Dense>
 #include <qpOASES.hpp>
-#include "controller/Robot.hpp"
-#include "controller/mpcLinearPendulum.hpp"
-#include "controller/zmpGeneration.hpp"
-#include "controller/Task.hpp"
-#include "controller/Dynamics.hpp"
-#include "controller/Clock.hpp"
-#include "controller/invKinematics.hpp"
-#include "controller/generalizedFunctions.hpp"
-#include "controller/footRefTrajectory.hpp"
-#include "rk4.hpp"
-#include <chrono>
+//#include <chrono>
+
+#include "linearMpcHumanoid/controller/mpcLinearPendulum.hpp"
+#include "linearMpcHumanoid/controller/Dynamics.hpp"
+#include "linearMpcHumanoid/controller/invKinematics.hpp"
+
+#include "linearMpcHumanoid/robotInfo/Robot.hpp"
+
+#include "linearMpcHumanoid/trajectories/zmpGeneration.hpp"
+#include "linearMpcHumanoid/trajectories/footRefTrajectory.hpp"
+
+#include "linearMpcHumanoid/general/Task.hpp"
+#include "linearMpcHumanoid/general/Clock.hpp"
+#include "linearMpcHumanoid/general/generalizedFunctions.hpp"
+#include "linearMpcHumanoid/general/rk4.hpp"
 
 /*
 state = [q, v]
@@ -25,6 +29,17 @@ v = [0v1,0w1, qDJ]
     0w1 ->  angular velocity of the base (spatial velocity)
     qDJ -> actual joints velocity
 */
+
+struct ControllerInput {
+    Eigen::VectorXd q;
+    Eigen::VectorXd dq;
+    double time;
+};
+
+struct ControllerOutput {
+    Eigen::VectorXd tau;
+};
+
 struct WBCOutput
     {
         Eigen::VectorXd qpp;
@@ -34,9 +49,9 @@ struct WBCOutput
 
 class Controller {
 public:
-    Controller(Robot& robot, Mpc3dLip& mpc);
+    Controller(Robot& robot, Mpc3dLip& mpc, std::vector<Eigen::VectorXd>& rFCoeff, std::vector<Eigen::VectorXd>& lFCoeff);
 
-    void stand();
+    ControllerOutput standStep(const ControllerInput& in);
 
     void computeComMomentum(Eigen::VectorXd v); //Uses state and centroidal matrix to compute the velocity of the center of mass
                                 //And the angular momentum of the center of mass
@@ -44,15 +59,13 @@ public:
 
     WBCOutput WBC(const Eigen::VectorXd& state, double t);
 
-    Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t);
-
     void frictionConstraints(Eigen::MatrixXd& Aeq,
         Eigen::VectorXd& beq,
         Eigen::MatrixXd& Aineq,
         Eigen::VectorXd& bineq);
 
 private:
-    double simulationTime_ = 2.5;
+    double simulationTime_ = 2;
     double t_ = 0;
     double dt_ = 0.01;
     
@@ -63,6 +76,7 @@ private:
     Dynamics dyn_;
     Kinematics kin_;
     Mpc3dLip& mpc_;
+    ZMP zmp_;
 
     Eigen::Vector3d comPos_ = Eigen::Vector3d::Zero();
     Eigen::Vector3d comVel_ = Eigen::Vector3d::Zero();
@@ -117,9 +131,6 @@ private:
     bool& initialized,
     const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g);
-
-    
-    
 
     //-----------------------------------Foot
     std::vector<Eigen::VectorXd> rFCoeff_;

@@ -1,4 +1,4 @@
-#include "controller/generalizedFunctions.hpp"
+#include "linearMpcHumanoid/general/generalizedFunctions.hpp"
 
 Eigen::Matrix3d crossMatrix(Eigen::Vector3d v){
     Eigen::Matrix3d A = Eigen::Matrix3d::Zero(3,3); 

@@ -32,10 +32,10 @@ target_link_libraries(controller_core PUBLIC
     qpOASES
 )
 
-add_executable(test_controller
-    tests/main.cpp
+add_executable(offline_controller
+    simulators/offline/main.cpp
 )
 
-target_link_libraries(test_controller
+target_link_libraries(offline_controller
     controller_core
 )

@@ -1,5 +1,11 @@
 # readme
 
+⚠️ Work in progress
+
+This repository contains an experimental linear MPC / WBC framework
+for humanoid robots. The current offline simulator integrates the
+closed-loop system using RK4. MuJoCo integration is planned.
+
 This project has as objective the C++ implementation of a model based Whole-Body Controller on a floating-base humanoid robot using a linear MPC formulation and centroidal dynamics. Outputs of the controller are torques that are directly send to the robot. The results are validated in Webots in tasks such as balance, walking and jumping.
 
 The project aims to use the fewest possible number of libraries in order to deeply understand what is happening inside each component. The only component that is not fully developed here is the qp solver.
