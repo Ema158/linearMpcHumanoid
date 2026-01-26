@@ -4,6 +4,7 @@
 
 Controller::Controller(Robot& robot,
     Mpc3dLip& mpc,
+    ZMP& zmp,
     std::vector<Eigen::VectorXd>& rFCoeff,
     std::vector<Eigen::VectorXd>& lFCoeff
     )
@@ -11,7 +12,7 @@ Controller::Controller(Robot& robot,
     robot_(robot),
     mpc_(mpc), 
     qp_(numDesVariables_,numConstraints_),
-    zmp_(Task::Stand,simulationTime_,dt_,SupportFoot::Double),
+    zmp_(zmp),
     rFCoeff_(rFCoeff),
     lFCoeff_(lFCoeff)
 {
@@ -81,8 +82,6 @@ ControllerOutput Controller::standStep(const ControllerInput& in)
     result.tau = out.tau;
     return result;    
 }
-
-
 
 void Controller::computeComMomentum(Eigen::VectorXd v)
 {

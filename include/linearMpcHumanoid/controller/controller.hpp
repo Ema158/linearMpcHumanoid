@@ -49,7 +49,12 @@ struct WBCOutput
 
 class Controller {
 public:
-    Controller(Robot& robot, Mpc3dLip& mpc, std::vector<Eigen::VectorXd>& rFCoeff, std::vector<Eigen::VectorXd>& lFCoeff);
+    Controller(
+        Robot& robot,
+        Mpc3dLip& mpc,
+        ZMP& zmp,
+        std::vector<Eigen::VectorXd>& rFCoeff,
+        std::vector<Eigen::VectorXd>& lFCoeff);
 
     ControllerOutput standStep(const ControllerInput& in);
 
@@ -64,11 +69,7 @@ public:
         Eigen::MatrixXd& Aineq,
         Eigen::VectorXd& bineq);
 
-private:
-    double simulationTime_ = 2;
-    double t_ = 0;
-    double dt_ = 0.01;
-    
+private: 
     Eigen::VectorXd tau_; //24 dimention vector of torques
     Eigen::VectorXd state_; // 60 dimention vector of the current configuration and velocity
     
