@@ -45,7 +45,6 @@ void ZMP::stanceZMP()
 
     zmpXRef_.setZero();
     
-    //std::cout<< zmpXRef_ <<std::endl;
     switch (supportFoot_) {
         case SupportFoot::Right:
             zmpYRef_.setConstant(-0.05);

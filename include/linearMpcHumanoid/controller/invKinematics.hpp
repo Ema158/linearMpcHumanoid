@@ -26,6 +26,17 @@ class Kinematics{
         Robot& robot,
         const Eigen::VectorXd& desOp);
 
+    static void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);
+
+    const Eigen::MatrixXd& getRightFootJacobian() const {return JR_;}
+    const Eigen::MatrixXd& getLeftFootJacobian() const {return JL_;}
+    const Eigen::MatrixXd& getFeetJacobian() const {return JFeet_;}
+
+    private:
+    Eigen::MatrixXd JR_;
+    Eigen::MatrixXd JL_;
+    Eigen::MatrixXd JFeet_;
+
     Eigen::VectorXd operationalState(
         const Robot& robot);
 
@@ -49,25 +60,6 @@ class Kinematics{
 
     Eigen::Vector3d rotMatrixToEulerAngles(
         const Eigen::Matrix3d& R,
-        const Eigen::Matrix3d& frame);//convertes a rotation matrix wrt world frame...
-                                                                                    //to euler angles wrt world
-                                                                                    //a reference frame is need to indicate the reference
-                                                                                    //when eulerAnlges=0
-
-    std::vector<Eigen::MatrixXd> allVelocityMatrices(
-        const std::vector<Eigen::Matrix4d>& piTi);
-
-    std::vector<Eigen::Matrix4d> parentTransMatrix(
-        const std::vector<Eigen::Matrix4d>& T);
-
-    static void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);
-
-    const Eigen::MatrixXd& getRightFootJacobian() const {return JR_;}
-    const Eigen::MatrixXd& getLeftFootJacobian() const {return JL_;}
-    const Eigen::MatrixXd& getFeetJacobian() const {return JFeet_;}
-
-    private:
-        Eigen::MatrixXd JR_;
-        Eigen::MatrixXd JL_;
-        Eigen::MatrixXd JFeet_;
+        const Eigen::Matrix3d& frame);
+    //converts a rotation matrix wrt world frame to euler angles wrt world a reference frame.
 };

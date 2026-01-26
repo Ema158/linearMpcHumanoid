@@ -58,16 +58,7 @@ public:
 
     ControllerOutput standStep(const ControllerInput& in);
 
-    void computeComMomentum(Eigen::VectorXd v); //Uses state and centroidal matrix to compute the velocity of the center of mass
-                                //And the angular momentum of the center of mass
-                               //Other option is to use the center of mass Jacobian of invKinematics
-
     WBCOutput WBC(const Eigen::VectorXd& state, double t);
-
-    void frictionConstraints(Eigen::MatrixXd& Aeq,
-        Eigen::VectorXd& beq,
-        Eigen::MatrixXd& Aineq,
-        Eigen::VectorXd& bineq);
 
 private: 
     Eigen::VectorXd tau_; //24 dimention vector of torques
@@ -136,5 +127,15 @@ private:
     //-----------------------------------Foot
     std::vector<Eigen::VectorXd> rFCoeff_;
     std::vector<Eigen::VectorXd> lFCoeff_;
+
+    //----------------------------------------------------------------------------------------------------
+    void computeComMomentum(Eigen::VectorXd v); //Uses state and centroidal matrix to compute the velocity of the center of mass
+                                //And the angular momentum of the center of mass
+                               //Other option is to use the center of mass Jacobian of invKinematics
+
+    void frictionConstraints(Eigen::MatrixXd& Aeq,
+        Eigen::VectorXd& beq,
+        Eigen::MatrixXd& Aineq,
+        Eigen::VectorXd& bineq);
 };
 
