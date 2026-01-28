@@ -5,20 +5,20 @@
 #include "linearMpcHumanoid/general/Clock.hpp"
 #include "linearMpcHumanoid/general/Task.hpp"
 
-void stand(Robot& robot, Controller& controller, double simulationTime);
+void stand(Robot& robot, Controller& controller, Clock& clock);
 
 Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& Robot, Controller& controller);
 
 int main() {
     double simulationTime = 2;
-    double timStep = 0.01;
+    double timeStep = 0.01;
 
     Robot nao;
     Kinematics ik;
-    Clock clock;
+    Clock clock(timeStep,simulationTime);
 
     //ZMP trajectory for a stand task (in the center of the support zone for all time)
-    ZMP zmp(Task::Stand,simulationTime,timStep,SupportFoot::Double);
+    ZMP zmp(Task::Stand,simulationTime,timeStep,SupportFoot::Double);
     
     //Initial position of the feet for simulation
     Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);
@@ -28,7 +28,7 @@ int main() {
     
     //Initial position of the center of mass for simulation
     Eigen::Vector3d com = Eigen::Vector3d::Zero();
-    com << 0.00, 0.01, 0.26 ;
+    com << 0.00, 0.02, 0.26 ;
     
     //Inverse kinematics to compute the initial joint configuration
     Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -58,20 +58,19 @@ int main() {
     Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff);
     
     //Compute the torques that balance the robot 
-    stand(nao, controller, simulationTime);
+    stand(nao, controller, clock);
 
     return 0;
 }
 
-void stand(Robot& robot, Controller& controller, double simulationTime) 
+void stand(Robot& robot, Controller& controller, Clock& clock) 
 {
      int n = robot.getNumJoints();
      Eigen::VectorXd state(2*n);
      state.segment(0,n) = robot.getJoints();
      state.segment(n,n) = robot.getJointsVelocity();
-     Clock clock;
      
-     while(std::abs(clock.getTime() - simulationTime) > 0.01)
+     while(std::abs(clock.getTime() - clock.getSimulationTime()) > 0.01)
      {
         //auto start = std::chrono::high_resolution_clock::now();
         
@@ -90,7 +89,7 @@ void stand(Robot& robot, Controller& controller, double simulationTime)
         clock.getTimeStep()
         );
 
-        std::cout<<state<<std::endl<<std::endl;
+        std::cout<<state(0)<<std::endl<<std::endl;
         robot.updateState(state.segment(0,n));
         robot.setJointsVelocity(state.segment(n,n));
         clock.step();

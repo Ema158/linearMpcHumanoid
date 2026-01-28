@@ -14,7 +14,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   // ---- construction / destruction ----
-  MujocoSim(const std::string& model_path);
+  MujocoSim(const std::string& model_path, const Eigen::VectorXd& q0);
   ~MujocoSim();
 
   // non-copyable
@@ -28,6 +28,7 @@ public:
   // ---- controller interface ----
   ControllerInput getControllerInput() const;
   void applyTorques(const Eigen::VectorXd& tau);
+  void applyJointPositions(const Eigen::VectorXd& qdes);
 
   // ---- gravity compensation ----
   Eigen::VectorXd computeGravityTorques();
@@ -51,5 +52,9 @@ private:
   int nu_ = 0;   // number of actuators
 
   // ---- helpers ----
-  void loadModel(const std::string& model_path);
+  void loadModel(const std::string& model_path, const Eigen::VectorXd& q0);
+
+  //-----PD gains for position controller----------------
+  Eigen::VectorXd kp_, kd_;
+  
 };

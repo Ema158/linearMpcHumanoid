@@ -5,12 +5,14 @@
 
 #include "simulators/MujocoSim.hpp"
 
+#include "linearMpcHumanoid/general/Clock.hpp"
+
 class MujocoViewer {
 public:
     MujocoViewer(MujocoSim& sim);
     ~MujocoViewer();
 
-    void run(std::function<void()> control_cb);
+    void run(std::function<void()> control_cb, Clock& clock);
 
 private:
     MujocoSim& sim_;

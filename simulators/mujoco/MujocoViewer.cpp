@@ -47,13 +47,14 @@ void MujocoViewer::initMujoco()
     mjr_makeContext(sim_.model(), &con_, mjFONTSCALE_150);
 }
 
-void MujocoViewer::run(std::function<void()> control_cb)
+void MujocoViewer::run(std::function<void()> control_cb, Clock& clock)
 {
-    while (!glfwWindowShouldClose(window_)) {
+    
+    while (!glfwWindowShouldClose(window_)&&std::abs(clock.getTime() - clock.getSimulationTime()) > 0.01) {
         if (control_cb) {
-            control_cb();     // 👈 controller called here
+            control_cb();     //  controller called here
         }
-        
+
         // Step simulation
         sim_.step();
 

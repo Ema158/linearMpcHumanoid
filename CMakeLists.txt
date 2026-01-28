@@ -34,6 +34,7 @@ add_library(controller_core
     src/mpcLinearPendulum.cpp
     src/zmpGeneration.cpp
     src/footRefTrajectory.cpp
+    src/Clock.cpp
 )
 
 target_include_directories(controller_core PUBLIC
@@ -67,7 +68,7 @@ target_link_libraries(mujoco_sim PUBLIC
 # Executables
 # -------------------------------
 add_executable(offline_controller
-    simulators/offline/main.cpp
+    apps/offline/main.cpp
 )
 target_link_libraries(offline_controller controller_core)
 

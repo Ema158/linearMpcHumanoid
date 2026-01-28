@@ -1,5 +1,6 @@
 <mujoco model="NaoH25V50">
-  <option timestep="0.002"/>
+  <option gravity="0 0 0"/>
+  <option timestep="0.01"/>
   <default>
   <geom contype="0" conaffinity="0"
         solref="0.02 1"
@@ -34,13 +35,13 @@
       conaffinity="1"/>
   <light pos="0 0 3"/>
 
-  <body name="base" pos="0 0 0.325">
+  <body name="base" pos="0 0 0.34">
   <inertial
     pos="-0.00413 0 0.04342"
     mass="1.0496"
     diaginertia="0.005 0.005 0.005"/>
   <geom class="body_geom" size="0.05 0.05 0.1" rgba="0.8 0.2 0.2 1"/>
-    <joint type="free" damping="1"/>
+  <joint type="free" damping="1"/>
     <body name="Neck" pos="0 0 0.1265">
       <inertial pos="-1e-05 0 -0.02742" quat="0.70765 -0.00173495 0.00151894 0.706559" mass="0.07842" diaginertia="1.70396e-05 1.60324e-05 5.53348e-06"/>
       <joint name="HeadYaw" pos="0 0 0" axis="0 0 1" range="-2.08567 2.08567" actuatorfrcrange="-1.547 1.547"/>
@@ -63,14 +64,14 @@
           <body name="LTibia" pos="0 0 -0.1">
             <inertial pos="0.00453 0.00225 -0.04936" quat="0.997907 0.0169027 0.0579417 0.0232071" mass="0.30142" diaginertia="0.000449928 0.000388139 0.000181704"/>
             <joint name="LKneePitch" pos="0 0 0" axis="0 1 0" range="-0.0923279 2.11255" actuatorfrcrange="-3.023 3.023"/>
-            <geom class="body_geom" size="0.025 0.025 0.05" pos="0 0 -0.05" rgba="0.2 0.8 0.2 1"/>
+            <geom class="body_geom" size="0.025 0.025 0.05145" pos="0 0 -0.05145" rgba="0.2 0.8 0.2 1"/>
             <body name="LAnklePitch" pos="0 0 -0.1029">
               <inertial pos="0.00045 0.00029 0.00685" quat="0.447256 0.548803 0.537287 0.458368" mass="0.13416" diaginertia="6.79494e-05 5.56016e-05 3.14223e-05"/>
               <joint name="LAnklePitch" pos="0 0 0" axis="0 1 0" range="-1.18944 0.922581" actuatorfrcrange="-3.023 3.023"/>
               <body name="l_ankle">
                 <inertial pos="0.0254198 0.00330005 -0.0323906" quat="0.0134363 0.704739 -0.00974782 0.709273" mass="0.171848" diaginertia="0.000412891 0.000353334 8.70025e-05"/>
                 <joint name="LAnkleRoll" pos="0 0 0" axis="1 0 0" range="-0.397761 0.768992" actuatorfrcrange="-3.348 3.348"/>
-                <geom class="foot_geom" type="box" size="0.06 0.025 0.022" pos="0.02 0 -0.015" rgba="0.2 0.2 0.8 1"/>
+                <geom class="foot_geom" type="box" size="0.06 0.025 0.02259" pos="0.02 0 -0.02259" rgba="0.2 0.2 0.8 1"/>
                 <!--<geom type="cylinder"
                 size="0.04 0.02"
                 friction="2.0 0.2 0.02"
@@ -94,14 +95,14 @@
           <body name="RTibia" pos="0 0 -0.1">
             <inertial pos="0.00453 -0.00225 -0.04936" quat="0.99698 -0.0149083 0.0724691 -0.0235809" mass="0.30142" diaginertia="0.000452851 0.000387699 0.000177824"/>
             <joint name="RKneePitch" pos="0 0 0" axis="0 1 0" range="-0.0923279 2.11255" actuatorfrcrange="-3.0226 3.0226"/>
-            <geom class="body_geom" size="0.025 0.025 0.05" pos="0 0 -0.05" rgba="0.2 0.8 0.2 1"/>
+            <geom class="body_geom" size="0.025 0.025 0.05145" pos="0 0 -0.05145" rgba="0.2 0.8 0.2 1"/>
             <body name="RAnklePitch" pos="0 0 -0.1029">
               <inertial pos="0.00045 -0.00029 0.00685" quat="0.458219 0.537985 0.54818 0.447332" mass="0.13416" diaginertia="6.79942e-05 5.56532e-05 3.14175e-05"/>
               <joint name="RAnklePitch" pos="0 0 0" axis="0 1 0" range="-1.1863 0.932006" actuatorfrcrange="-3.0226 3.0226"/>
               <body name="r_ankle">
                 <inertial pos="0.0254198 -0.00330005 -0.0323906" quat="-0.0138336 0.704473 0.00894574 0.70954" mass="0.171848" diaginertia="0.000412175 0.000352454 8.68701e-05"/>
                 <joint name="RAnkleRoll" pos="0 0 0" axis="1 0 0" range="-0.768992 0.397761" actuatorfrcrange="-3.348 3.348"/>
-                <geom class="foot_geom" type="box" size="0.06 0.025 0.022" pos="0.02 0 -0.015" rgba="0.2 0.2 0.8 1"/>
+                <geom class="foot_geom" type="box" size="0.06 0.025 0.02259" pos="0.02 0 -0.02259" rgba="0.2 0.2 0.8 1"/>
                 <!--<geom type="cylinder"
                 size="0.04 0.02"
                 friction="2.0 0.2 0.02"
