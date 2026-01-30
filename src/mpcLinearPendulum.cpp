@@ -46,7 +46,7 @@ void Mpc3dLip::initialize()
             0,1;
     B_ << (dt_*dt_)/2, dt_;
     C_ << 1,0;
-    D_ = zCom_/gravity_;
+    D_ = -zCom_/gravity_;
 
     Px_ = Eigen::MatrixXd::Zero(horizon_+1,2);
     Pu_ = Eigen::MatrixXd::Zero(horizon_+1,horizon_+1);
