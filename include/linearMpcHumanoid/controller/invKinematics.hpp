@@ -26,7 +26,7 @@ class Kinematics{
         Robot& robot,
         const Eigen::VectorXd& desOp);
 
-    static void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);
+    //static void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);
 
     const Eigen::MatrixXd& getRightFootJacobian() const {return JR_;}
     const Eigen::MatrixXd& getLeftFootJacobian() const {return JL_;}

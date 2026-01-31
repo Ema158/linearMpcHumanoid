@@ -38,7 +38,7 @@ Eigen::VectorXd Dynamics::computeC(
 
     Eigen::VectorXd qD = robot.getJointsVelocity();
     Eigen::VectorXd qDD = Eigen::VectorXd::Zero(robot.getNumJoints()); // to compute C zero joints accelerations are assumed
-    Kinematics::swapBaseVelocityAndRefToWorldFrame(X[0], qD);
+    swapBaseVelocityAndRefToWorldFrame(X[0], qD);
 
     std::vector<Eigen::VectorXd> vel; //spatial velocity of each frame
     vel.resize(robot.getNumFrames());
@@ -170,7 +170,7 @@ Eigen::VectorXd Dynamics::computeJpqpFrame(const Robot& robot,
 
     Eigen::VectorXd qD = robot.getJointsVelocity();
     Eigen::VectorXd qDD = Eigen::VectorXd::Zero(robot.getNumJoints()); // to compute C zero joints accelerations are assumed
-    Kinematics::swapBaseVelocityAndRefToWorldFrame(X[0], qD);
+    swapBaseVelocityAndRefToWorldFrame(X[0], qD);
 
     std::vector<Eigen::VectorXd> vel; //spatial velocity of each frame
     vel.resize(robot.getNumFrames());

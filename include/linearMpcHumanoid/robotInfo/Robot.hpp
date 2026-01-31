@@ -5,6 +5,9 @@
 #include "linearMpcHumanoid/robotInfo/linkInertia.hpp"
 #include "linearMpcHumanoid/robotInfo/robotParameters.hpp"
 #include "linearMpcHumanoid/general/generalizedFunctions.hpp"
+//#include "linearMpcHumanoid/controller/Dynamics.hpp"
+//#include "linearMpcHumanoid/controller/invKinematics.hpp"
+
 #define NUM_JOINTS 30 //24 real joints plus 6 of the floating base
 #define NUM_ACTUAL_JOINTS 24 // 24 rotational joints
 #define NUM_FRAMES 28 //1 for base, 24 for each joint, 2 extra feet, 1 extra head
@@ -34,6 +37,10 @@ public:
     const std::vector<linkInertia>& getLinks() const {return links_;}
     
     const Eigen::Vector3d& getCoM() const {return CoM_;}
+
+    const Eigen::Vector3d& getComVel() const {return comVel_;}
+
+    const Eigen::Vector3d& getComAngMom() const {return comAngMom_;}
     
     double getMass() const {return mass_;}
     
@@ -46,12 +53,16 @@ public:
     Eigen::VectorXd getS() const {return S_;}
     
     void computeCoM();
+
+    void computeComMomentum(Eigen::VectorXd v, const Eigen::MatrixXd& AG); //Uses state and centroidal matrix to compute the velocity of the center of mass
+                                                                            //And the angular momentum of the center of mass
+                                                                            //Other option is to use the center of mass Jacobian of invKinematics
     
     void forwardKinematics();
     
     void updateState(const Eigen::VectorXd& q_new);
 
-    void setJointsVelocity(const Eigen::VectorXd& v_new) {v_ = v_new;}
+    void updateVelocityState(const Eigen::VectorXd& v_new, const Eigen::MatrixXd& AG);
 
     std::vector<Eigen::Matrix4d> parentTransMatrix(const std::vector<Eigen::Matrix4d>& T);
 
@@ -71,6 +82,8 @@ private:
     std::vector<linkInertia> links_;
     std::vector<Eigen::MatrixXd> X_; //Velocity matrix of each frame wrt to its parent
     Eigen::Vector3d CoM_;
+    Eigen::Vector3d comVel_;
+    Eigen::Vector3d comAngMom_;
     double mass_;
     Eigen::Matrix3d Rf_q0_; //Rotation matrix of right foot frame when q=0
     Eigen::Matrix3d Lf_q0_; //Rotation matrix of left foot frame when q=0 

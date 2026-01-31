@@ -268,6 +268,11 @@ void Robot::updateState(const Eigen::VectorXd& q_new){
     allVelocityMatrices(parentTransMatrix(T_));
 }
 
+void Robot::updateVelocityState(const Eigen::VectorXd& v_new, const Eigen::MatrixXd& AG){
+    v_ = v_new;
+    computeComMomentum(v_, AG);
+}
+
 std::vector<Eigen::Matrix4d> Robot::parentTransMatrix(
     const std::vector<Eigen::Matrix4d>& T)
 {
@@ -290,4 +295,16 @@ void Robot::allVelocityMatrices(
     for(int i=0;i<getNumFrames();i++){
             X_[i] = velocityMatrix(piTi[i]);
     }
+}
+
+void Robot::computeComMomentum(Eigen::VectorXd v, const Eigen::MatrixXd& AG)
+{
+    swapBaseVelocityAndRefToWorldFrame(getX()[0], v);
+    Eigen::VectorXd comSpatialMomentum = Eigen::VectorXd::Zero(6);
+
+    comSpatialMomentum = AG*v; 
+                                                                
+    comVel_ = comSpatialMomentum.segment(3,3)/getMass(); //We divided linear momentum by mass to obtain velocity 
+    
+    comAngMom_ = comSpatialMomentum.segment(0,3);
 }

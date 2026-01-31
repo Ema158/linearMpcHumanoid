@@ -19,7 +19,6 @@ Controller::Controller(Robot& robot,
     std::cout<<"Controller Initiated" << std::endl;
     std::cout<<"Initial conditions of the center of mass: " << "c = " << robot_.getCoM()(0);
     std::cout<<", "<< robot_.getCoM()(1) << ", " << robot_.getCoM()(2) << std::endl << std::endl;
-    comPos_ << robot_.getCoM()(0), robot_.getCoM()(1), robot_.getCoM()(2);
 
     //Initial State
     state_.resize(2*robot_.getNumJoints());
@@ -51,19 +50,20 @@ ControllerOutput Controller::standStep(const ControllerInput& in)
 
     //Update state
     robot_.updateState(in.q);
-    robot_.setJointsVelocity(in.dq);
 
     //Update M,C, Jacobians, etc
     dyn_.computeAll(robot_);
     kin_.computeAll(robot_);
 
+    robot_.updateVelocityState(in.dq, dyn_.getAG());
+    //std::cout<<robot_.getJointsVelocity()<<std::endl<<std::endl;
     //Update CoM state for LIP model
     Eigen::Vector2d com_xy;
     Eigen::Vector2d comVel_xy;
     com_xy << robot_.getCoM()(0), robot_.getCoM()(1);
-    computeComMomentum(in.dq);
-    comVel_xy << comVel_(0), comVel_(1);
-
+    //std::cout<<com_xy<<std::endl<<std::endl;
+    comVel_xy << robot_.getComVel()(0), robot_.getComVel()(1);
+    //std::cout<<comVel_xy<<std::endl<<std::endl;
     //Mpc lip model
     mpc_.compute(
         com_xy,
@@ -72,27 +72,15 @@ ControllerOutput Controller::standStep(const ControllerInput& in)
         zmp_.getZmpYRef(),
         in.time
     );
-
+    //std::cout<<mpc_.getYRef()(0)<<std::endl;
     //WBC
     state_.segment(0, n) = in.q;
     state_.segment(n, n) = in.dq;
     WBCOutput out = WBC(state_, in.time);
 
     ControllerOutput result;
-    result.tau = out.tau;
+    //result.tau = out.tau;
     return result;    
-}
-
-void Controller::computeComMomentum(Eigen::VectorXd v)
-{
-    Kinematics::swapBaseVelocityAndRefToWorldFrame(robot_.getX()[0], v);
-    Eigen::VectorXd comSpatialMomentum = Eigen::VectorXd::Zero(6);
-
-    comSpatialMomentum = dyn_.getAG()*v; 
-                                                                
-    comVel_ = comSpatialMomentum.segment(3,3)/robot_.getMass(); //We divided linear momentum by mass to obtain velocity 
-    
-    comAngMom_ = comSpatialMomentum.segment(0,3);
 }
 
 WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
@@ -106,9 +94,11 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
     //q = state.segment(0,robot_.getNumJoints());
 
     Eigen::VectorXd qppRef = PDJointsAcc();
+    
     Eigen::VectorXd hGpRef = PDMomentumAcc();
+    
     Eigen::VectorXd footAccRef = PDFeetAcc(t);
-
+    //std::cout<<footAccRef<<std::endl;
     Eigen::MatrixXd WJ = Eigen::MatrixXd::Zero(robot_.getNumJoints(), robot_.getNumJoints()); //Weight matrix of joints (including base)
     WJ.block(0,0,3,3) = wBasePos_*Eigen::Matrix3d::Identity(); // Weights base position
     WJ.block(3,3,3,3) = wBaseAng_*Eigen::Matrix3d::Identity(); // Weights base orientation
@@ -140,8 +130,10 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
             - WJ*qppRef
             + (kin_.getFeetJacobian().transpose())*WFeet*(dyn_.getJpqp()) 
             - (kin_.getFeetJacobian().transpose())*WFeet*(footAccRef);
-
+    
+    //std::cout<<g<<std::endl<<std::endl;
     Eigen::VectorXd qpSolution = solveQP(qp_, qp_initialized_, H, g);
+    //std::cout<<qpSolution<<std::endl<<std::endl;
     forces = qpSolution.segment(n,numReactionForces_);
     Eigen::VectorXd generalizedForces(n);
     generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n));// + dyn_.getC() 
@@ -289,8 +281,9 @@ const Eigen::VectorXd Controller::PDMomentumAcc()
     Eigen::Vector3d comAccRef;
     comAccRef << mpc_.getXRef()(2), mpc_.getYRef()(2), 0;
     
-    hGpRef.segment(3,3) = robot_.getMass()*(KpMom_*(comPosRef - comPos_) + KdMom_*(comVelRef - comVel_) + comAccRef); //linear momentum
-    hGpRef.segment(0,3) = KdMom_*(Eigen::Vector3d::Zero() - comAngMom_); //Zero desired angular momentum
+    hGpRef.segment(3,3) = robot_.getMass()*(KpMom_*(comPosRef - robot_.getCoM())
+                         + KdMom_*(comVelRef - robot_.getComVel()) + comAccRef); //linear momentum
+    hGpRef.segment(0,3) = KdMom_*(Eigen::Vector3d::Zero() - robot_.getComAngMom()); //Zero desired angular momentum
     return hGpRef;
 }
 
@@ -300,7 +293,7 @@ const::Eigen::VectorXd Controller::PDFeetAcc(double t)
     Eigen::VectorXd v = robot_.getJointsVelocity();
     //Change base velocity wrt world frame -> base velocity wrt base frame
     //Beacause Jacobian is wrt base frame
-    Kinematics::swapBaseVelocityAndRefToWorldFrame(robot_.getX()[0], v);
+    swapBaseVelocityAndRefToWorldFrame(robot_.getX()[0], v);
     
     //Current position of the feet
     Eigen::Vector3d rFoot = robot_.getT()[7].block(0,3,3,1);

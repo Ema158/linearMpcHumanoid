@@ -191,3 +191,16 @@ const Eigen::VectorXd polyder(const Eigen::VectorXd& poly)
 
     return polyD;
 }
+
+void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v)
+{
+    // v is in the order [linear velocity, angular velocity]. We need to change
+    // to the order [angular vel, linear velocity]
+    Eigen::Vector3d temp = v.segment(0,3);
+    v.segment(0,3) = v.segment(3,3);
+    v.segment(3,3) = temp;
+
+    //Also base velocity in v is wrt to world frame
+    //In centroidal matrix base velocity in v is wrt base frame
+    v.segment(0,6) = X01*v.segment(0,6);
+}

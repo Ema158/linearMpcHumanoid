@@ -4,6 +4,7 @@
 #include "linearMpcHumanoid/robotInfo/Robot.hpp"
 #include "linearMpcHumanoid/controller/controller.hpp"
 #include "linearMpcHumanoid/controller/invKinematics.hpp"
+//#include "linearMpcHumanoid/controlller/Dynamics.hpp"
 #include "linearMpcHumanoid/controller/mpcLinearPendulum.hpp"
 #include "linearMpcHumanoid/general/Clock.hpp"
 #include "linearMpcHumanoid/general/Task.hpp"
@@ -96,6 +97,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
     Eigen::VectorXd state(2*n);
     state.segment(0,n) = robot.getJoints();
     state.segment(n,n) = robot.getJointsVelocity();
+    Dynamics dyn;
   
     state = rk4Step(
         [&](const Eigen::VectorXd& x, double t)
@@ -109,7 +111,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
 
     std::cout<<state(0)<<std::endl<<std::endl;
     robot.updateState(state.segment(0,n));
-    robot.setJointsVelocity(state.segment(n,n));
+    //robot.updateStateVelocity(state.segment(n,n), dyn.getAG());
     clock.step();    
 }
 

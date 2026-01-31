@@ -69,10 +69,6 @@ private:
     Kinematics kin_;
     Mpc3dLip& mpc_;
     ZMP zmp_;
-
-    Eigen::Vector3d comPos_ = Eigen::Vector3d::Zero();
-    Eigen::Vector3d comVel_ = Eigen::Vector3d::Zero();
-    Eigen::Vector3d comAngMom_ = Eigen::Vector3d::Zero();
     
     Eigen::MatrixXd frictionMatrix_ = Eigen::MatrixXd::Zero(3,4);
     double mu_ = 0.7; //friction coeff
@@ -127,11 +123,6 @@ private:
     //-----------------------------------Foot
     std::vector<Eigen::VectorXd> rFCoeff_;
     std::vector<Eigen::VectorXd> lFCoeff_;
-
-    //----------------------------------------------------------------------------------------------------
-    void computeComMomentum(Eigen::VectorXd v); //Uses state and centroidal matrix to compute the velocity of the center of mass
-                                //And the angular momentum of the center of mass
-                               //Other option is to use the center of mass Jacobian of invKinematics
 
     void frictionConstraints(Eigen::MatrixXd& Aeq,
         Eigen::VectorXd& beq,
