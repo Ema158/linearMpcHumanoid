@@ -106,7 +106,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
     in.dq   = state.segment(n,n);
     in.time = t;
 
-    ControllerOutput ctrlOut = controller.standStep(in);
+    Eigen::VectorXd tau = controller.standStep(in);
 
     WBCOutput out = controller.WBC(state, t);
 

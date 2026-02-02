@@ -43,8 +43,8 @@ struct ControllerOutput {
 struct WBCOutput
     {
         Eigen::VectorXd qpp;
-        Eigen::VectorXd f;
         Eigen::VectorXd tau;
+        Eigen::VectorXd f;   
 };
 
 class Controller {
@@ -56,7 +56,7 @@ public:
         std::vector<Eigen::VectorXd>& rFCoeff,
         std::vector<Eigen::VectorXd>& lFCoeff);
 
-    ControllerOutput standStep(const ControllerInput& in);
+    Eigen::VectorXd standStep(const ControllerInput& in);
 
     WBCOutput WBC(const Eigen::VectorXd& state, double t);
 

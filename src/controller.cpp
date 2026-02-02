@@ -44,7 +44,7 @@ Controller::Controller(Robot& robot,
     lFCoeff_.resize(3);
 }
 
-ControllerOutput Controller::standStep(const ControllerInput& in)
+Eigen::VectorXd Controller::standStep(const ControllerInput& in)
 {
     int n = robot_.getNumJoints();
 
@@ -78,16 +78,19 @@ ControllerOutput Controller::standStep(const ControllerInput& in)
     state_.segment(n, n) = in.dq;
     WBCOutput out = WBC(state_, in.time);
 
-    ControllerOutput result;
+    //ControllerOutput result;
     //result.tau = out.tau;
-    return result;    
+    Eigen::VectorXd tau;
+    //std::cout<< out.tau << std::endl;
+    tau = out.tau;
+    return tau;    
 }
 
 WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
 {
     int n = robot_.getNumJoints();
     Eigen::VectorXd qDD(n); // joints acceleration 
-    Eigen::VectorXd tau(n-6); // torques only at actual joints, not floating base
+    Eigen::VectorXd torques = Eigen::VectorXd::Zero(24); // torques only at actual joints, not floating base
     Eigen::VectorXd forces(numReactionForces_); // reaction forces and moments
     //Eigen::VectorXd q = Eigen::VectorXd::Zero(robot_.getNumJoints());
 
@@ -122,6 +125,13 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
 
     H.block(robot_.getNumJoints(),robot_.getNumJoints(), numReactionForces_, numReactionForces_) = WForce;
 
+    const double eps = 1e-8;
+    H.block(30 + 12, 30 + 12,
+        numDesVariables_ - (30 + 12),
+        numDesVariables_ - (30 + 12))
+        = eps * Eigen::MatrixXd::Identity(
+        numDesVariables_ - (30 + 12),
+        numDesVariables_ - (30 + 12));
     //gradient construction
     Eigen::VectorXd g = Eigen::VectorXd::Zero(numDesVariables_);
     g.segment(0,robot_.getNumJoints()) = 
@@ -134,11 +144,11 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
     //std::cout<<g<<std::endl<<std::endl;
     Eigen::VectorXd qpSolution = solveQP(qp_, qp_initialized_, H, g);
     //std::cout<<qpSolution<<std::endl<<std::endl;
-    forces = qpSolution.segment(n,numReactionForces_);
+    forces = qpSolution.segment(30,12);
     Eigen::VectorXd generalizedForces(n);
-    generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n));// + dyn_.getC() 
-                                        //- (kin_.getFeetJacobian().transpose())*x.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
-    tau = generalizedForces.segment(6,n-6);
+    generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n)) + dyn_.getC() 
+                                        - (kin_.getFeetJacobian().transpose())*qpSolution.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
+    //tau = generalizedForces.segment(6,n-6);
     //x have the base spatial acceleration wrt to base frame, before integreated It has to be wrt world frame
     Eigen::VectorXd accBaseWrtWrld = robot_.getX()[0].colPivHouseholderQr().solve(qpSolution.segment(0,6));
     //Also the order of linear-angular base velocity is inverted in the generalized velocity vector
@@ -146,7 +156,11 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
     qDD.segment(3,3) = accBaseWrtWrld.segment(0,3);
     qDD.segment(6,robot_.getNumActualJoints()) = qpSolution.segment(6,robot_.getNumActualJoints());
 
-    return { qDD, forces, tau};
+    WBCOutput out;
+    out.qpp = qDD;
+    out.f = forces;
+    out.tau = torques;
+    return out;
 }
 
 void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
@@ -154,106 +168,130 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
     Eigen::MatrixXd& Aineq,
     Eigen::VectorXd& bineq)
 {   
+    Aeq.setZero();
+    Aineq.setZero();
+    beq.setZero();
+    bineq.setZero();
+
+    const int idx_qdd   = 0; //0
+    const int idx_nR    = robot_.getNumJoints(); //30
+    const int idx_fR    = idx_nR + 3; //33
+    const int idx_nL    = idx_fR + 3; //36
+    const int idx_fL    = idx_nL + 3; //39
+    const int idx_muR   = idx_fL + 3; //42
+    const int idx_muL   = idx_muR + numCoeff_*numVertex_; //58
+
+    const int idx_ConstraintfR = 0; //0
+    const int idx_ConstraintnR = idx_ConstraintfR + 3; //3
+    const int idx_ConstraintfL = idx_ConstraintnR + 3; //6
+    const int idx_ConstraintnL = idx_ConstraintfL + 3; //9
+
     //----------------------------------------Forces---------------------------------------------------------
     //Right foot
-    Aeq(0,robot_.getNumJoints() + 3) = -1; //-fx + c11*v1x + c12*v2x + c13v3x + c14v4x + ... = 0
-    Aeq.block(0,robot_.getNumJoints() + numReactionForces_, 1, numCoeff_) = frictionMatrix_.row(0); 
-    Aeq.block(0,robot_.getNumJoints() + numReactionForces_ + numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0); 
-    Aeq.block(0,robot_.getNumJoints() + numReactionForces_ + 2*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
-    Aeq.block(0,robot_.getNumJoints() + numReactionForces_ + 3*numCoeff_, 1 ,numCoeff_) = frictionMatrix_.row(0); 
+    Aeq(idx_ConstraintfR,idx_fR) = -1; //-fx + c11*v1x + c12*v2x + c13v3x + c14v4x + ... = 0
+    for(int i=0;i<numCoeff_;i++){
+        Aeq.block(idx_ConstraintfR,idx_muR + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
+    }
 
-    Aeq(1,robot_.getNumJoints() + 3 + 1) = -1; //-fy + c11*v1y + c12*v2y + c13v3y + c14v4y + ... = 0
-    Aeq.block(1,robot_.getNumJoints() + numReactionForces_, 1, numCoeff_) = frictionMatrix_.row(1); 
-    Aeq.block(1,robot_.getNumJoints() + numReactionForces_ + numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1); 
-    Aeq.block(1,robot_.getNumJoints() + numReactionForces_ + 2*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
-    Aeq.block(1,robot_.getNumJoints() + numReactionForces_ + 3*numCoeff_, 1 ,numCoeff_) = frictionMatrix_.row(1); 
+    Aeq(idx_ConstraintfR + 1,idx_fR + 1) = -1; //-fy + c11*v1y + c12*v2y + c13v3y + c14v4y + ... = 0
+    for(int i=0;i<numCoeff_;i++){
+        Aeq.block(idx_ConstraintfR + 1,idx_muR + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
+    }
 
-    Aeq(2,robot_.getNumJoints() + 3 + 2) = -1; //-fz + c11*v1z + c12*v2z + c13v3z + c14v4z ... = 0
-    Aeq.block(2,robot_.getNumJoints() + numReactionForces_, 1, numCoeff_) = frictionMatrix_.row(2); 
-    Aeq.block(2,robot_.getNumJoints() + numReactionForces_ + numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2); 
-    Aeq.block(2,robot_.getNumJoints() + numReactionForces_ + 2*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
-    Aeq.block(2,robot_.getNumJoints() + numReactionForces_ + 3*numCoeff_, 1 ,numCoeff_) = frictionMatrix_.row(2); 
-
+    Aeq(idx_ConstraintfR + 2,idx_fR + 2) = -1; //-fz + c11*v1z + c12*v2z + c13v3z + c14v4z ... = 0
+    for(int i=0;i<numCoeff_;i++){
+        Aeq.block(idx_ConstraintfR + 2,idx_muR + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
+    }
+    
     //Left foot
-    Aeq(6,robot_.getNumJoints() + 3 + 6) = -1; //-fx + c11*v1x + c12*v2x + c13v3x + c14v4x + ... = 0
-    Aeq.block(6,robot_.getNumJoints() + numReactionForces_ + 4*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0); 
-    Aeq.block(6,robot_.getNumJoints() + numReactionForces_ + 5*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0); 
-    Aeq.block(6,robot_.getNumJoints() + numReactionForces_ + 6*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
-    Aeq.block(6,robot_.getNumJoints() + numReactionForces_ + 7*numCoeff_, 1 ,numCoeff_) = frictionMatrix_.row(0); 
+    Aeq(idx_ConstraintfL,idx_fL) = -1; //-fx + c11*v1x + c12*v2x + c13v3x + c14v4x + ... = 0
+    for(int i=0;i<numCoeff_;i++){
+        Aeq.block(idx_ConstraintfL,idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
+    }
 
-    Aeq(7,robot_.getNumJoints() + 3 + 6 + 1) = -1; //-fy + c11*v1y + c12*v2y + c13v3y + c14v4y + ... = 0
-    Aeq.block(7,robot_.getNumJoints() + numReactionForces_ + 4*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1); 
-    Aeq.block(7,robot_.getNumJoints() + numReactionForces_ + 5*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1); 
-    Aeq.block(7,robot_.getNumJoints() + numReactionForces_ + 6*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
-    Aeq.block(7,robot_.getNumJoints() + numReactionForces_ + 7*numCoeff_, 1 ,numCoeff_) = frictionMatrix_.row(1); 
+    Aeq(idx_ConstraintfL + 1,idx_fL + 1) = -1; //-fy + c11*v1y + c12*v2y + c13v3y + c14v4y + ... = 0
+    for(int i=0;i<numCoeff_;i++){
+        Aeq.block(idx_ConstraintfL + 1,idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
+    } 
 
-    Aeq(8,robot_.getNumJoints() + 3 + 6 + 2) = -1; //-fz + c11*v1z + c12*v2z + c13v3z + c14v4z ... = 0
-    Aeq.block(8,robot_.getNumJoints() + numReactionForces_ + 4*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2); 
-    Aeq.block(8,robot_.getNumJoints() + numReactionForces_ + 5*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2); 
-    Aeq.block(8,robot_.getNumJoints() + numReactionForces_ + 6*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
-    Aeq.block(8,robot_.getNumJoints() + numReactionForces_ + 7*numCoeff_, 1 ,numCoeff_) = frictionMatrix_.row(2); 
-
+    Aeq(idx_ConstraintfL + 2,idx_fL + 2) = -1; //-fz + c11*v1z + c12*v2z + c13v3z + c14v4z ... = 0
+    for(int i=0;i<numCoeff_;i++){
+        Aeq.block(idx_ConstraintfL + 2,idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
+    }
+    
     //----------------------------------------Moments-----------------------------------------------------------
     //Right foot
-    Aeq(3,robot_.getNumJoints()) = -1; //-nx ...
-    Aeq(4,robot_.getNumJoints()+1) = -1; //-ny ...
-    Aeq(5,robot_.getNumJoints()+2) = -1; //-nz ...
+    Aeq(idx_ConstraintnR,idx_nR) = -1; //-nx ...
+    Aeq(idx_ConstraintnR + 1,idx_nR + 1) = -1; //-ny ...
+    Aeq(idx_ConstraintnR + 2,idx_nR + 2) = -1; //-nz ...
 
     Eigen::MatrixXd temp;
-    temp = crossMatrix(robot_.getFootVertices()[0])*frictionMatrix_; // ... + p1 x forceVertex1 + ...
-     
-    Aeq.block(3,robot_.getNumJoints() + numReactionForces_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(4,robot_.getNumJoints() + numReactionForces_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(5,robot_.getNumJoints() + numReactionForces_, 1, numCoeff_) = temp.row(2);
+    temp = crossMatrix(robot_.getFootVertices()[0])*frictionMatrix_; // ... + p1 x forceVertex1 + ...  
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnR + i, idx_muR, 1, numCoeff_) = temp.row(i);
+    }
 
     temp = crossMatrix(robot_.getFootVertices()[1])*frictionMatrix_; // ... + p2 x forceVertex2 + ...
-    Aeq.block(3,robot_.getNumJoints() + numReactionForces_ + numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(4,robot_.getNumJoints() + numReactionForces_ + numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(5,robot_.getNumJoints() + numReactionForces_ + numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnR + i, idx_muR + numCoeff_, 1, numCoeff_) = temp.row(i);
+    }
 
     temp = crossMatrix(robot_.getFootVertices()[2])*frictionMatrix_; // ... + p3 x forceVertex3 + ...
-    Aeq.block(3,robot_.getNumJoints() + numReactionForces_ + 2*numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(4,robot_.getNumJoints() + numReactionForces_ + 2*numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(5,robot_.getNumJoints() + numReactionForces_ + 2*numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnR + i, idx_muR + 2*numCoeff_, 1, numCoeff_) = temp.row(i);
+    }
 
     temp = crossMatrix(robot_.getFootVertices()[3])*frictionMatrix_; // .... + p4 x forceVertex4...
-    Aeq.block(3,robot_.getNumJoints() + numReactionForces_ + 3*numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(4,robot_.getNumJoints() + numReactionForces_ + 3*numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(5,robot_.getNumJoints() + numReactionForces_ + 3*numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnR + i, idx_muR + 3*numCoeff_, 1, numCoeff_) = temp.row(i);
+    }
 
     //Left foot
-    Aeq(9,robot_.getNumJoints() + 6) = -1; //-nx ...
-    Aeq(10,robot_.getNumJoints()+ 6 + 1) = -1; //-ny ...
-    Aeq(11,robot_.getNumJoints() + 6 + 2) = -1; //-nz ...
+    Aeq(idx_ConstraintnL,idx_nL) = -1; //-nx ...
+    Aeq(idx_ConstraintnL + 1,idx_nL + 1) = -1; //-ny ...
+    Aeq(idx_ConstraintnL + 2,idx_nL + 2) = -1; //-nz ...
 
     temp = crossMatrix(robot_.getFootVertices()[0])*frictionMatrix_; // ... + p1 x forceVertex1 + ...
-     
-    Aeq.block(9,robot_.getNumJoints() + numReactionForces_ + 4*numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(10,robot_.getNumJoints() + numReactionForces_ + 4*numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(11,robot_.getNumJoints() + numReactionForces_ + 4*numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnL + i, idx_muL, 1, numCoeff_) = temp.row(i);
+    }
 
     temp = crossMatrix(robot_.getFootVertices()[1])*frictionMatrix_; // ... + p2 x forceVertex2 + ...
-    Aeq.block(9,robot_.getNumJoints() + numReactionForces_ + 5*numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(10,robot_.getNumJoints() + numReactionForces_ + 5*numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(11,robot_.getNumJoints() + numReactionForces_ + 5*numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnL + i, idx_muL + numCoeff_, 1, numCoeff_) = temp.row(i);
+    }
 
     temp = crossMatrix(robot_.getFootVertices()[2])*frictionMatrix_; // ... + p3 x forceVertex3 + ...
-    Aeq.block(9,robot_.getNumJoints() + numReactionForces_ + 6*numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(10,robot_.getNumJoints() + numReactionForces_ + 6*numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(11,robot_.getNumJoints() + numReactionForces_ + 6*numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnL + i, idx_muL + 2*numCoeff_, 1, numCoeff_) = temp.row(i);
+    }
 
     temp = crossMatrix(robot_.getFootVertices()[3])*frictionMatrix_; // .... + p4 x forceVertex4...
-    Aeq.block(9,robot_.getNumJoints() + numReactionForces_ + 7*numCoeff_, 1, numCoeff_) = temp.row(0);
-    Aeq.block(10,robot_.getNumJoints() + numReactionForces_ + 7*numCoeff_, 1, numCoeff_) = temp.row(1);
-    Aeq.block(11,robot_.getNumJoints() + numReactionForces_ + 7*numCoeff_, 1, numCoeff_) = temp.row(2);
+    for(int i=0;i<3;i++){
+        Aeq.block(idx_ConstraintnL + i, idx_muL + 3*numCoeff_, 1, numCoeff_) = temp.row(i);
+    }
 
-    beq = Eigen::VectorXd::Zero(12); // = 0
+    beq = Eigen::VectorXd::Zero(numFrictionEqConstraints_); // = 0
 
     //------------------------------------------Inequality-----------------------------------------
-    Aineq.block(0, robot_.getNumJoints() + numReactionForces_, 2*numCoeff_*numVertex_, 2*numCoeff_*numVertex_)
+    Aineq.block(0, idx_muR, 2*numCoeff_*numVertex_, 2*numCoeff_*numVertex_)
                                             = Eigen::MatrixXd::Identity(2*numCoeff_*numVertex_,2*numCoeff_*numVertex_); // cij
                                             
-    bineq = Eigen::VectorXd::Zero(numIneqConstraints_);                                    
+    bineq = Eigen::VectorXd::Zero(numFrictionIneqConstraints_); 
+    
+    std::cout << "Matrix Aeq" << std::endl;
+    std::cout << "Rows: " << Aeq.rows() << std::endl; // Output: 2
+    std::cout << "Columns: " << Aeq.cols() << std::endl <<std::endl; // Output: 3
+
+    std::cout << "Matrix Aineq" << std::endl;
+    std::cout << "Rows: " << Aineq.rows() << std::endl; // Output: 2
+    std::cout << "Columns: " << Aineq.cols() << std::endl <<std::endl; // Output: 3
+
+    std::cout << "Vector beq" << std::endl;
+    std::cout << "Rows: " << beq.size() << std::endl<<std::endl; // Output: 2
+
+    std::cout << "Vector bineq" << std::endl;
+    std::cout << "Rows: " << bineq.rows() << std::endl << std::endl; // Output: 2
 }
 
 const Eigen::VectorXd Controller::PDJointsAcc()
@@ -369,7 +407,7 @@ Eigen::VectorXd Controller::solveQP(
 
     //Friction constraints
     Eigen::MatrixXd Aeq = Eigen::MatrixXd::Zero(numFrictionEqConstraints_,numDesVariables_); 
-    Eigen::MatrixXd Aineq = Eigen::MatrixXd::Zero(numIneqConstraints_,numDesVariables_);
+    Eigen::MatrixXd Aineq = Eigen::MatrixXd::Zero(numFrictionIneqConstraints_,numDesVariables_);
     Eigen::VectorXd beq = Eigen::VectorXd::Zero(numFrictionEqConstraints_); 
     Eigen::VectorXd bineq = Eigen::VectorXd::Zero(numFrictionIneqConstraints_);
     frictionConstraints(Aeq,beq,Aineq,bineq);
@@ -400,6 +438,13 @@ Eigen::VectorXd Controller::solveQP(
 
     int nWSR = 500;
     qpOASES::returnValue status;
+
+    /*std::cout << "QP expects nV = " << qp.getNV()
+          << ", nC = " << qp.getNC() << std::endl;
+
+    std::cout << "You provide nV = " << numDesVariables_
+          << ", nC = " << numConstraints_ << std::endl;*/
+
     if(!qp_initialized_){
         status = qp.init(Hsym.data(), g.data(),
             A.data(), nullptr, nullptr,
