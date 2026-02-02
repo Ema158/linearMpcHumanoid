@@ -4,7 +4,6 @@
 #include "linearMpcHumanoid/robotInfo/Robot.hpp"
 #include "linearMpcHumanoid/controller/controller.hpp"
 #include "linearMpcHumanoid/controller/invKinematics.hpp"
-//#include "linearMpcHumanoid/controlller/Dynamics.hpp"
 #include "linearMpcHumanoid/controller/mpcLinearPendulum.hpp"
 #include "linearMpcHumanoid/general/Clock.hpp"
 #include "linearMpcHumanoid/general/Task.hpp"
@@ -19,10 +18,11 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& Robot, C
 int main() {
   double simulationTime = 4;
   double timeStep = 0.01;
-  Clock clock(timeStep,simulationTime);
+
   //Desired initial configuration for the simulation
   Robot nao;
   Kinematics ik;
+  Clock clock(timeStep,simulationTime);
 
   //ZMP trajectory for a stand task (in the center of the support zone for all time)
   ZMP zmp(Task::Stand,simulationTime,timeStep,SupportFoot::Double);
@@ -35,7 +35,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.00, 0.00, 0.26 ;
+  com << 0.0, -0.02, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -97,7 +97,6 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
     Eigen::VectorXd state(2*n);
     state.segment(0,n) = robot.getJoints();
     state.segment(n,n) = robot.getJointsVelocity();
-    Dynamics dyn;
   
     state = rk4Step(
         [&](const Eigen::VectorXd& x, double t)
@@ -109,9 +108,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
         clock.getTimeStep()
         );
 
-    std::cout<<state(0)<<std::endl<<std::endl;
-    robot.updateState(state.segment(0,n));
-    //robot.updateStateVelocity(state.segment(n,n), dyn.getAG());
+    std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
     clock.step();    
 }
 
@@ -123,8 +120,8 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
     Eigen::VectorXd qD = state.segment(n,n);
 
     ControllerInput in;
-    in.q    = robot.getJoints();
-    in.dq   = robot.getJointsVelocity();
+    in.q    = state.segment(0,n);
+    in.dq   = state.segment(n,n);
     in.time = t;
 
     Eigen::VectorXd tau = controller.standStep(in);
