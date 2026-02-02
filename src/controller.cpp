@@ -90,11 +90,8 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
 {
     int n = robot_.getNumJoints();
     Eigen::VectorXd qDD(n); // joints acceleration 
-    Eigen::VectorXd torques = Eigen::VectorXd::Zero(24); // torques only at actual joints, not floating base
+    Eigen::VectorXd torques(n-6); // torques only at actual joints, not floating base
     Eigen::VectorXd forces(numReactionForces_); // reaction forces and moments
-    //Eigen::VectorXd q = Eigen::VectorXd::Zero(robot_.getNumJoints());
-
-    //q = state.segment(0,robot_.getNumJoints());
 
     Eigen::VectorXd qppRef = PDJointsAcc();
     
@@ -141,14 +138,12 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
             + (kin_.getFeetJacobian().transpose())*WFeet*(dyn_.getJpqp()) 
             - (kin_.getFeetJacobian().transpose())*WFeet*(footAccRef);
     
-    //std::cout<<g<<std::endl<<std::endl;
     Eigen::VectorXd qpSolution = solveQP(qp_, qp_initialized_, H, g);
-    //std::cout<<qpSolution<<std::endl<<std::endl;
     forces = qpSolution.segment(30,12);
     Eigen::VectorXd generalizedForces(n);
     generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n)) + dyn_.getC() 
                                         - (kin_.getFeetJacobian().transpose())*qpSolution.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
-    //tau = generalizedForces.segment(6,n-6);
+    torques = generalizedForces.segment(6,n-6);
     //x have the base spatial acceleration wrt to base frame, before integreated It has to be wrt world frame
     Eigen::VectorXd accBaseWrtWrld = robot_.getX()[0].colPivHouseholderQr().solve(qpSolution.segment(0,6));
     //Also the order of linear-angular base velocity is inverted in the generalized velocity vector
@@ -168,6 +163,11 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
     Eigen::MatrixXd& Aineq,
     Eigen::VectorXd& bineq)
 {   
+    Aeq.resize(numFrictionEqConstraints_, numDesVariables_);
+    Aineq.resize(numFrictionIneqConstraints_, numDesVariables_);
+    beq.resize(numFrictionEqConstraints_);
+    bineq.resize(numFrictionIneqConstraints_);
+
     Aeq.setZero();
     Aineq.setZero();
     beq.setZero();
@@ -185,52 +185,54 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
     const int idx_ConstraintnR = idx_ConstraintfR + 3; //3
     const int idx_ConstraintfL = idx_ConstraintnR + 3; //6
     const int idx_ConstraintnL = idx_ConstraintfL + 3; //9
-
+    
     //----------------------------------------Forces---------------------------------------------------------
     //Right foot
     Aeq(idx_ConstraintfR,idx_fR) = -1; //-fx + c11*v1x + c12*v2x + c13v3x + c14v4x + ... = 0
-    for(int i=0;i<numCoeff_;i++){
+    for(int i=0;i<numVertex_;i++){
         Aeq.block(idx_ConstraintfR,idx_muR + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
     }
-
+    
     Aeq(idx_ConstraintfR + 1,idx_fR + 1) = -1; //-fy + c11*v1y + c12*v2y + c13v3y + c14v4y + ... = 0
-    for(int i=0;i<numCoeff_;i++){
+    for(int i=0;i<numVertex_;i++){
         Aeq.block(idx_ConstraintfR + 1,idx_muR + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
     }
-
+    
     Aeq(idx_ConstraintfR + 2,idx_fR + 2) = -1; //-fz + c11*v1z + c12*v2z + c13v3z + c14v4z ... = 0
-    for(int i=0;i<numCoeff_;i++){
+    for(int i=0;i<numVertex_;i++){
         Aeq.block(idx_ConstraintfR + 2,idx_muR + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
     }
     
-    //Left foot
+    //----------------------------------------------------Left foot
     Aeq(idx_ConstraintfL,idx_fL) = -1; //-fx + c11*v1x + c12*v2x + c13v3x + c14v4x + ... = 0
-    for(int i=0;i<numCoeff_;i++){
-        Aeq.block(idx_ConstraintfL,idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
+    for(int i=0;i<numVertex_;i++){
+        Aeq.block(idx_ConstraintfL, idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(0);
     }
-
+    
     Aeq(idx_ConstraintfL + 1,idx_fL + 1) = -1; //-fy + c11*v1y + c12*v2y + c13v3y + c14v4y + ... = 0
-    for(int i=0;i<numCoeff_;i++){
-        Aeq.block(idx_ConstraintfL + 1,idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
+    for(int i=0;i<numVertex_;i++){
+        Aeq.block(idx_ConstraintfL + 1, idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(1);
     } 
-
+    
     Aeq(idx_ConstraintfL + 2,idx_fL + 2) = -1; //-fz + c11*v1z + c12*v2z + c13v3z + c14v4z ... = 0
-    for(int i=0;i<numCoeff_;i++){
-        Aeq.block(idx_ConstraintfL + 2,idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
+    for(int i=0;i<numVertex_;i++){
+        Aeq.block(idx_ConstraintfL + 2, idx_muL + i*numCoeff_, 1, numCoeff_) = frictionMatrix_.row(2);
     }
     
     //----------------------------------------Moments-----------------------------------------------------------
     //Right foot
     Aeq(idx_ConstraintnR,idx_nR) = -1; //-nx ...
+
     Aeq(idx_ConstraintnR + 1,idx_nR + 1) = -1; //-ny ...
-    Aeq(idx_ConstraintnR + 2,idx_nR + 2) = -1; //-nz ...
+
+    Aeq(idx_ConstraintnR + 2, idx_nR + 2) = -1; //-nz ...
 
     Eigen::MatrixXd temp;
     temp = crossMatrix(robot_.getFootVertices()[0])*frictionMatrix_; // ... + p1 x forceVertex1 + ...  
     for(int i=0;i<3;i++){
         Aeq.block(idx_ConstraintnR + i, idx_muR, 1, numCoeff_) = temp.row(i);
     }
-
+    
     temp = crossMatrix(robot_.getFootVertices()[1])*frictionMatrix_; // ... + p2 x forceVertex2 + ...
     for(int i=0;i<3;i++){
         Aeq.block(idx_ConstraintnR + i, idx_muR + numCoeff_, 1, numCoeff_) = temp.row(i);
@@ -245,11 +247,13 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
     for(int i=0;i<3;i++){
         Aeq.block(idx_ConstraintnR + i, idx_muR + 3*numCoeff_, 1, numCoeff_) = temp.row(i);
     }
-
+    
     //Left foot
     Aeq(idx_ConstraintnL,idx_nL) = -1; //-nx ...
+
     Aeq(idx_ConstraintnL + 1,idx_nL + 1) = -1; //-ny ...
-    Aeq(idx_ConstraintnL + 2,idx_nL + 2) = -1; //-nz ...
+
+    Aeq(idx_ConstraintnL + 2, idx_nL + 2) = -1; //-nz ...
 
     temp = crossMatrix(robot_.getFootVertices()[0])*frictionMatrix_; // ... + p1 x forceVertex1 + ...
     for(int i=0;i<3;i++){
@@ -272,26 +276,27 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
     }
 
     beq = Eigen::VectorXd::Zero(numFrictionEqConstraints_); // = 0
-
     //------------------------------------------Inequality-----------------------------------------
+    
     Aineq.block(0, idx_muR, 2*numCoeff_*numVertex_, 2*numCoeff_*numVertex_)
                                             = Eigen::MatrixXd::Identity(2*numCoeff_*numVertex_,2*numCoeff_*numVertex_); // cij
                                             
     bineq = Eigen::VectorXd::Zero(numFrictionIneqConstraints_); 
     
-    std::cout << "Matrix Aeq" << std::endl;
-    std::cout << "Rows: " << Aeq.rows() << std::endl; // Output: 2
-    std::cout << "Columns: " << Aeq.cols() << std::endl <<std::endl; // Output: 3
+    assert(Aeq.rows() == numFrictionEqConstraints_);
+    assert(Aeq.cols() == numDesVariables_);
+    assert(Aineq.rows() == numIneqConstraints_);
+    assert(Aineq.cols() == numDesVariables_);
 
-    std::cout << "Matrix Aineq" << std::endl;
-    std::cout << "Rows: " << Aineq.rows() << std::endl; // Output: 2
-    std::cout << "Columns: " << Aineq.cols() << std::endl <<std::endl; // Output: 3
+    if (!Aeq.allFinite()) {
+    std::cerr << "Aeq has NaN or Inf!" << std::endl;
+    std::abort();
+    }
 
-    std::cout << "Vector beq" << std::endl;
-    std::cout << "Rows: " << beq.size() << std::endl<<std::endl; // Output: 2
-
-    std::cout << "Vector bineq" << std::endl;
-    std::cout << "Rows: " << bineq.rows() << std::endl << std::endl; // Output: 2
+    if (!Aineq.allFinite()) {
+        std::cerr << "Aineq has NaN or Inf!" << std::endl;
+        std::abort();
+    }
 }
 
 const Eigen::VectorXd Controller::PDJointsAcc()
@@ -394,6 +399,8 @@ Eigen::VectorXd Controller::solveQP(
 {
     Eigen::VectorXd qpp(numDesVariables_);
     Eigen::MatrixXd Hsym = 0.5 * (H + H.transpose()); //guarantee symmetry
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Hqp;
+    Hqp = Hsym;
 
     //Dynamics constraint
     Eigen::MatrixXd A1 = Eigen::MatrixXd::Zero(numDynamicsEqConstraints_, numDesVariables_); // Dynamics constraint M /dot{v} - J^T*f = -C 
@@ -439,23 +446,10 @@ Eigen::VectorXd Controller::solveQP(
     int nWSR = 500;
     qpOASES::returnValue status;
 
-    /*std::cout << "QP expects nV = " << qp.getNV()
-          << ", nC = " << qp.getNC() << std::endl;
-
-    std::cout << "You provide nV = " << numDesVariables_
-          << ", nC = " << numConstraints_ << std::endl;*/
-
-    if(!qp_initialized_){
-        status = qp.init(Hsym.data(), g.data(),
-            A.data(), nullptr, nullptr,
-            lbA.data(), ubA.data(), nWSR);
-            qp_initialized_ = true;
-    }
-    else{
-        status = qp.hotstart(Hsym.data(), g.data(),
-            A.data(), nullptr, nullptr,
-            lbA.data(), ubA.data(), nWSR);
-    }
+    status = qp.init(Hqp.data(), g.data(),
+        A.data(), nullptr, nullptr,
+        lbA.data(), ubA.data(), nWSR);
+        //qp_initialized_ = true;
     
     if (status != qpOASES::SUCCESSFUL_RETURN)
     {

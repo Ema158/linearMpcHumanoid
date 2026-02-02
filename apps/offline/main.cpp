@@ -28,7 +28,7 @@ int main() {
     
     //Initial position of the center of mass for simulation
     Eigen::Vector3d com = Eigen::Vector3d::Zero();
-    com << 0.03, 0.0, 0.26 ;
+    com << 0.0, -0.02, 0.26 ;
     
     //Inverse kinematics to compute the initial joint configuration
     Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -88,7 +88,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
         clock.getTimeStep()
         );
 
-        std::cout<<robot.getCoM()(0)<<std::endl<<std::endl;
+        std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
         clock.step();
         
      }   
