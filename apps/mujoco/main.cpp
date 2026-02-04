@@ -11,12 +11,14 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-void stand(Robot& robot, Controller& controller, Clock& clock);
+void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim);
 
 Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& Robot, Controller& controller);
 
+Eigen::MatrixXd relabelMujocoMatrix(Robot& robot);
+
 int main() {
-  double simulationTime = 4;
+  double simulationTime = 0.05;
   double timeStep = 0.01;
 
   //Desired initial configuration for the simulation
@@ -35,7 +37,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.0, -0.02, 0.26 ;
+  com << 0.02, 0.00, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -70,33 +72,54 @@ int main() {
   MujocoViewer viewer(sim);
 
   Eigen::VectorXd q_test(24);
-  q_test << q0(28), q0(29), 
-            q0(12), q0(13), q0(14), q0(15), q0(16), q0(17),
-            q0(6), q0(7), q0(8), q0(9), q0(10), q0(11),
-            -q0(23), q0(24), q0(25), q0(26), q0(27),
-            q0(18), q0(19), q0(20), q0(21), q0(22);            
+  Eigen::MatrixXd L = relabelMujocoMatrix(nao);
+
+  q_test = L*q0.segment(6,nao.getNumActualJoints());           
 
   //Simulation
   viewer.run([&]() {
-        stand(nao,controller,clock);
-        q0 = nao.getJoints();
-        q_test << q0(28), q0(29), 
-            q0(12), q0(13), q0(14), q0(15), q0(16), q0(17),
-            q0(6), q0(7), q0(8), q0(9), q0(10), q0(11),
-            -q0(23), q0(24), q0(25), q0(26), q0(27),
-            q0(18), q0(19), q0(20), q0(21), q0(22); 
+        stand(nao,controller,clock,sim);
+        //q0 = nao.getJoints();
+        q_test = L*q0.segment(6,nao.getNumActualJoints()); 
         sim.applyJointPositions(q_test);
     }, clock);
 
+  /*Eigen::VectorXd tau_test(24);
+  Eigen::VectorXd tau0(24);
+  viewer.run([&]() {
+        stand(nao,controller,clock);
+        tau0 = controller.getTorques();
+        tau_test << tau0(22), tau0(23), 
+            tau0(6), tau0(7), tau0(8), tau0(9), tau0(10), tau0(11),
+            tau0(0), tau0(1), tau0(2), tau0(3), tau0(4), tau0(5),
+            -tau0(17), tau0(18), tau0(19), tau0(20), tau0(21),
+            tau0(12), tau0(13), tau0(14), tau0(15), tau0(16); 
+        sim.applyJointPositions(tau_test);
+    }, clock);*/
+ 
   return 0;
 }
 
-void stand(Robot& robot, Controller& controller, Clock& clock) 
+void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim) 
 {
     int n = robot.getNumJoints();
     Eigen::VectorXd state(2*n);
+
+    Eigen::VectorXd currentPos(n+1);
+    Eigen::VectorXd currentVel(n);
+    
+    //Get state from rk4 integration (no feedback)
     state.segment(0,n) = robot.getJoints();
     state.segment(n,n) = robot.getJointsVelocity();
+
+    //Get state from mujoco data (feedback), no orientation for now
+    sim.getMujocoState(currentPos, currentVel);
+    //state.segment(0,3) = currentPos.segment(0,3);
+    //state(2) -= 0.035;
+    //Eigen::VectorXd relabelJoints(24); 
+    //relabelJoints = (relabelMujocoMatrix(robot).transpose()) * (currentPos.segment(7,24));
+    //state.segment(6,6) = relabelJoints.segment(0,6);
+    //state.segment(n,3) = currentVel.segment(0,3);
   
     state = rk4Step(
         [&](const Eigen::VectorXd& x, double t)
@@ -108,7 +131,19 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
         clock.getTimeStep()
         );
 
-    std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
+    //std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
+    std::cout << "Mujoco x position = " << currentPos(0) << " RK4 position = " << state(0) << std::endl;
+    std::cout << "Mujoco y position = " << currentPos(1) << " RK4 position = " << state(1) << std::endl;
+    std::cout << "Mujoco z position = " << currentPos(2)- 0.035 << " RK4 position = " << state(2) << std::endl;
+    for(int i=0;i<24;i++){
+        std::cout << "Mujoco q"<< i+1 << " = " << currentPos(i+6) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
+        //std::cout << "Mujoco q"<< i+1 << " = " << relabelJoints(i) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
+    }
+    std::cout<<std::endl;
+    /*std::cout << "Mujoco x velocity = " << currentVel(0) << " RK4 position = " << state(n) << std::endl;
+    std::cout << "Mujoco y position = " << currentVel(1) << " RK4 position = " << state(n+1) << std::endl;
+    std::cout << "Mujoco z position = " << currentVel(2) << " RK4 position = " << state(n+2) << std::endl << std::endl;*/
+
     clock.step();    
 }
 
@@ -124,7 +159,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
     in.dq   = state.segment(n,n);
     in.time = t;
 
-    Eigen::VectorXd tau = controller.standStep(in);
+    controller.standStep(in);
 
     WBCOutput out = controller.WBC(state, t);
 
@@ -143,4 +178,24 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
     xp.head(n) = qD;// q̇
     xp.tail(n) = out.qpp;// q̈
     return xp;
+}
+
+Eigen::MatrixXd relabelMujocoMatrix(Robot& robot)
+{
+    Eigen::MatrixXd L(robot.getNumActualJoints(), robot.getNumActualJoints());
+    int numHeadJoints = 2;
+    int numLegJoints = 6;
+    int numArmJoints = 5;
+
+    L.block(0,22,numHeadJoints,numHeadJoints) = Eigen::Matrix2d::Identity();
+
+    L.block(2,6,numLegJoints,numLegJoints) = Eigen::MatrixXd::Identity(numLegJoints,numLegJoints);
+
+    L.block(8,0,numLegJoints,numLegJoints) = Eigen::MatrixXd::Identity(numLegJoints,numLegJoints);
+
+    L.block(14,17, numArmJoints, numArmJoints) = Eigen::MatrixXd::Identity(numArmJoints,numArmJoints);
+    L(14,17) = -1;
+
+    L.block(19,12, numArmJoints, numArmJoints) = Eigen::MatrixXd::Identity(numArmJoints,numArmJoints);
+    return L;
 }

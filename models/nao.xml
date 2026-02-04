@@ -1,9 +1,10 @@
 <mujoco model="NaoH25V50">
-  <option gravity="0 0 0"/>
-  <option timestep="0.01"/>
+  <!--<option timestep="0.01"/>-->
+  <option timestep="0.001" iterations="100" solver="Newton"/>
+  <!--<option gravity="0 0 0"/>-->
   <default>
   <geom contype="0" conaffinity="0"
-        solref="0.02 1"
+        solref="0.002 1"
         solimp="0.9 0.95 0.001"/>
   <default class="body_geom">
   <geom
@@ -72,10 +73,6 @@
                 <inertial pos="0.0254198 0.00330005 -0.0323906" quat="0.0134363 0.704739 -0.00974782 0.709273" mass="0.171848" diaginertia="0.000412891 0.000353334 8.70025e-05"/>
                 <joint name="LAnkleRoll" pos="0 0 0" axis="1 0 0" range="-0.397761 0.768992" actuatorfrcrange="-3.348 3.348"/>
                 <geom class="foot_geom" type="box" size="0.06 0.025 0.02259" pos="0.02 0 -0.02259" rgba="0.2 0.2 0.8 1"/>
-                <!--<geom type="cylinder"
-                size="0.04 0.02"
-                friction="2.0 0.2 0.02"
-                condim="6"/>-->
               </body>
             </body>
           </body>
@@ -103,10 +100,6 @@
                 <inertial pos="0.0254198 -0.00330005 -0.0323906" quat="-0.0138336 0.704473 0.00894574 0.70954" mass="0.171848" diaginertia="0.000412175 0.000352454 8.68701e-05"/>
                 <joint name="RAnkleRoll" pos="0 0 0" axis="1 0 0" range="-0.768992 0.397761" actuatorfrcrange="-3.348 3.348"/>
                 <geom class="foot_geom" type="box" size="0.06 0.025 0.02259" pos="0.02 0 -0.02259" rgba="0.2 0.2 0.8 1"/>
-                <!--<geom type="cylinder"
-                size="0.04 0.02"
-                friction="2.0 0.2 0.02"
-                condim="6"/>-->
               </body>
             </body>
           </body>

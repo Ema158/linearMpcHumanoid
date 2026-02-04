@@ -56,9 +56,11 @@ public:
         std::vector<Eigen::VectorXd>& rFCoeff,
         std::vector<Eigen::VectorXd>& lFCoeff);
 
-    Eigen::VectorXd standStep(const ControllerInput& in);
+    void standStep(const ControllerInput& in);
 
     WBCOutput WBC(const Eigen::VectorXd& state, double t);
+
+    const Eigen::VectorXd& getTorques(){return tau_;}
 
 private: 
     Eigen::VectorXd tau_; //24 dimention vector of torques
@@ -128,5 +130,11 @@ private:
         Eigen::VectorXd& beq,
         Eigen::MatrixXd& Aineq,
         Eigen::VectorXd& bineq);
+
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Hqp_;
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> A_;
+    Eigen::VectorXd g_;
+    Eigen::VectorXd lbA_;
+    Eigen::VectorXd ubA_;
 };
 

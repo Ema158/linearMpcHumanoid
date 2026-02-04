@@ -28,7 +28,7 @@ int main() {
     
     //Initial position of the center of mass for simulation
     Eigen::Vector3d com = Eigen::Vector3d::Zero();
-    com << 0.0, -0.02, 0.26 ;
+    com << -0.02, 0.0, 0.26 ;
     
     //Inverse kinematics to compute the initial joint configuration
     Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -67,17 +67,12 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
 {
      int n = robot.getNumJoints();
      Eigen::VectorXd state(2*n);
+
      state.segment(0,n) = robot.getJoints();
      state.segment(n,n) = robot.getJointsVelocity();
+
      while(std::abs(clock.getTime() - clock.getSimulationTime()) > 0.01)
-     {
-        //auto start = std::chrono::high_resolution_clock::now();
-        
-        //tau_ = out.tau;
-        //auto end = std::chrono::high_resolution_clock::now();
-        //std::chrono::duration<double> elapsed = end - start;
-        //std::cout << "Execution time: " << elapsed.count() << " seconds\n";
-        
+     {     
         state = rk4Step(
         [&](const Eigen::VectorXd& x, double t)
         {
@@ -88,9 +83,8 @@ void stand(Robot& robot, Controller& controller, Clock& clock)
         clock.getTimeStep()
         );
 
-        std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
-        clock.step();
-        
+        std::cout << robot.getCoM()(0) << std::endl << std::endl;
+        clock.step(); 
      }   
 }
 
@@ -106,7 +100,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
     in.dq   = state.segment(n,n);
     in.time = t;
 
-    Eigen::VectorXd tau = controller.standStep(in);
+    controller.standStep(in);
 
     WBCOutput out = controller.WBC(state, t);
 

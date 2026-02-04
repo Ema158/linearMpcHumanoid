@@ -44,7 +44,7 @@ Controller::Controller(Robot& robot,
     lFCoeff_.resize(3);
 }
 
-Eigen::VectorXd Controller::standStep(const ControllerInput& in)
+void Controller::standStep(const ControllerInput& in)
 {
     int n = robot_.getNumJoints();
 
@@ -56,14 +56,11 @@ Eigen::VectorXd Controller::standStep(const ControllerInput& in)
     kin_.computeAll(robot_);
 
     robot_.updateVelocityState(in.dq, dyn_.getAG());
-    //std::cout<<robot_.getJointsVelocity()<<std::endl<<std::endl;
     //Update CoM state for LIP model
     Eigen::Vector2d com_xy;
     Eigen::Vector2d comVel_xy;
     com_xy << robot_.getCoM()(0), robot_.getCoM()(1);
-    //std::cout<<com_xy<<std::endl<<std::endl;
     comVel_xy << robot_.getComVel()(0), robot_.getComVel()(1);
-    //std::cout<<comVel_xy<<std::endl<<std::endl;
     //Mpc lip model
     mpc_.compute(
         com_xy,
@@ -72,18 +69,12 @@ Eigen::VectorXd Controller::standStep(const ControllerInput& in)
         zmp_.getZmpYRef(),
         in.time
     );
-    //std::cout<<mpc_.getYRef()(0)<<std::endl;
     //WBC
     state_.segment(0, n) = in.q;
     state_.segment(n, n) = in.dq;
     WBCOutput out = WBC(state_, in.time);
 
-    //ControllerOutput result;
-    //result.tau = out.tau;
-    Eigen::VectorXd tau;
-    //std::cout<< out.tau << std::endl;
-    tau = out.tau;
-    return tau;    
+    tau_ = out.tau;   
 }
 
 WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
@@ -446,7 +437,14 @@ Eigen::VectorXd Controller::solveQP(
     int nWSR = 500;
     qpOASES::returnValue status;
 
-    status = qp.init(Hqp.data(), g.data(),
+    Hqp_ = Hsym;
+    A_ = A;
+    g_   = g;
+    lbA_ = lbA;
+    ubA_ = ubA;
+    //qpOASES::SQProblem qp2(numDesVariables_, numConstraints_);
+
+    status = qp.init(Hsym.data(), g.data(),
         A.data(), nullptr, nullptr,
         lbA.data(), ubA.data(), nWSR);
         //qp_initialized_ = true;
@@ -457,6 +455,24 @@ Eigen::VectorXd Controller::solveQP(
     // optionally return previous solution or zero
     }
     qp.getPrimalSolution(qpp.data());
+    /*Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+    Htest = Eigen::MatrixXd::Identity(numDesVariables_, numDesVariables_);
+
+    Eigen::VectorXd gtest = Eigen::VectorXd::Zero(numDesVariables_);
+
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
+    Atest = Eigen::MatrixXd::Zero(numConstraints_, numDesVariables_);
+
+    Eigen::VectorXd lbAtest = Eigen::VectorXd::Zero(numConstraints_);
+    Eigen::VectorXd ubAtest = Eigen::VectorXd::Zero(numConstraints_);
+
+    qpOASES::SQProblem qp3(numDesVariables_, numConstraints_);
+    qp3.init(Htest.data(), gtest.data(),
+            Atest.data(), nullptr, nullptr,
+            lbAtest.data(), ubAtest.data(), nWSR);
+    */
+
+    
     return qpp;
 }
 

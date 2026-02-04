@@ -41,6 +41,8 @@ public:
   const mjModel* model() const { return m_; }
   mjData* data() const { return d_; }
 
+  void getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v);
+
 private:
   // ---- MuJoCo core ----
   mjModel* m_ = nullptr;

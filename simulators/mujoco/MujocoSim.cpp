@@ -192,3 +192,9 @@ void MujocoSim::applyJointPositions(const Eigen::VectorXd& q_des)
 
   applyTorques(tau);
 }
+
+void MujocoSim::getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v)
+{
+  q = Eigen::Map<Eigen::VectorXd>(d_->qpos, m_->nq);
+  v = Eigen::Map<Eigen::VectorXd>(d_->qvel, m_->nv);
+}
