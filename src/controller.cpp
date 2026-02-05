@@ -90,7 +90,7 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
     
     Eigen::VectorXd footAccRef = PDFeetAcc(t);
     //std::cout<<footAccRef<<std::endl;
-    Eigen::MatrixXd WJ = Eigen::MatrixXd::Zero(robot_.getNumJoints(), robot_.getNumJoints()); //Weight matrix of joints (including base)
+    Eigen::MatrixXd WJ = Eigen::MatrixXd::Zero(n, n); //Weight matrix of joints (including base)
     WJ.block(0,0,3,3) = wBasePos_*Eigen::Matrix3d::Identity(); // Weights base position
     WJ.block(3,3,3,3) = wBaseAng_*Eigen::Matrix3d::Identity(); // Weights base orientation
     WJ.block(6,6,robot_.getNumActualJoints(),robot_.getNumActualJoints()) 
@@ -100,26 +100,26 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
     WC.block(0,0,3,3) = wCoMK_*Eigen::Matrix3d::Identity(); //Angular momentum
     WC.block(3,3,3,3) = wCoML_*Eigen::Matrix3d::Identity(); //Linear momentum
 
-    Eigen::MatrixXd WFeet = wFoot_*Eigen::MatrixXd::Identity(12,12); //Weight matrix feet position and orientation
+    Eigen::MatrixXd WFeet = wFoot_*Eigen::MatrixXd::Identity(numReactionForces_, numReactionForces_); //Weight matrix feet position and orientation
 
     Eigen::MatrixXd WForce = wForce_*Eigen::MatrixXd::Identity(numReactionForces_, numReactionForces_); //Weight matrix reaction spatial forces
 
     //Hessian construction
     Eigen::MatrixXd H = Eigen::MatrixXd::Zero(numDesVariables_, numDesVariables_); //Hessian qp
-    H.block(0,0,robot_.getNumJoints(),robot_.getNumJoints()) = 
+    H.block(0,0,n,n) = 
           (dyn_.getAG().transpose())*WC*(dyn_.getAG()) 
         + WJ 
         + (kin_.getFeetJacobian().transpose())*WFeet*(kin_.getFeetJacobian());
 
-    H.block(robot_.getNumJoints(),robot_.getNumJoints(), numReactionForces_, numReactionForces_) = WForce;
+    H.block(n, n, numReactionForces_, numReactionForces_) = WForce;
 
     const double eps = 1e-8;
-    H.block(30 + 12, 30 + 12,
-        numDesVariables_ - (30 + 12),
-        numDesVariables_ - (30 + 12))
+    H.block(numDesVariablesJoints_ + numDesVariablesForces_, numDesVariablesJoints_ + numDesVariablesForces_,
+        numDesVariablesCoeff_,
+        numDesVariablesCoeff_)
         = eps * Eigen::MatrixXd::Identity(
-        numDesVariables_ - (30 + 12),
-        numDesVariables_ - (30 + 12));
+        numDesVariablesCoeff_,
+        numDesVariablesCoeff_);
     //gradient construction
     Eigen::VectorXd g = Eigen::VectorXd::Zero(numDesVariables_);
     g.segment(0,robot_.getNumJoints()) = 
@@ -129,8 +129,8 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
             + (kin_.getFeetJacobian().transpose())*WFeet*(dyn_.getJpqp()) 
             - (kin_.getFeetJacobian().transpose())*WFeet*(footAccRef);
     
-    Eigen::VectorXd qpSolution = solveQP(qp_, qp_initialized_, H, g);
-    forces = qpSolution.segment(30,12);
+    Eigen::VectorXd qpSolution = solveQP(H, g);
+    forces = qpSolution.segment(numDesVariablesJoints_, numDesVariablesForces_);
     Eigen::VectorXd generalizedForces(n);
     generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n)) + dyn_.getC() 
                                         - (kin_.getFeetJacobian().transpose())*qpSolution.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
@@ -383,8 +383,6 @@ const::Eigen::VectorXd Controller::PDFeetAcc(double t)
 }
 
 Eigen::VectorXd Controller::solveQP(
-    qpOASES::SQProblem& qp,
-    bool& initialized,
     const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g)
 {
@@ -444,7 +442,7 @@ Eigen::VectorXd Controller::solveQP(
     ubA_ = ubA;
     //qpOASES::SQProblem qp2(numDesVariables_, numConstraints_);
 
-    status = qp.init(Hsym.data(), g.data(),
+    status = qp_.init(Hsym.data(), g.data(),
         A.data(), nullptr, nullptr,
         lbA.data(), ubA.data(), nWSR);
         //qp_initialized_ = true;
@@ -454,7 +452,7 @@ Eigen::VectorXd Controller::solveQP(
     std::cerr << "QP failed, status = " << status << std::endl;
     // optionally return previous solution or zero
     }
-    qp.getPrimalSolution(qpp.data());
+    qp_.getPrimalSolution(qpp.data());
     /*Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
     Htest = Eigen::MatrixXd::Identity(numDesVariables_, numDesVariables_);
 

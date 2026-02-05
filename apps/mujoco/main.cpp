@@ -113,7 +113,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     state.segment(n,n) = robot.getJointsVelocity();
 
     //Get state from mujoco data (feedback), no orientation for now
-    sim.getMujocoState(currentPos, currentVel);
+    //sim.getMujocoState(currentPos, currentVel);
     //state.segment(0,3) = currentPos.segment(0,3);
     //state(2) -= 0.035;
     //Eigen::VectorXd relabelJoints(24); 
@@ -132,13 +132,13 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
         );
 
     //std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
-    std::cout << "Mujoco x position = " << currentPos(0) << " RK4 position = " << state(0) << std::endl;
-    std::cout << "Mujoco y position = " << currentPos(1) << " RK4 position = " << state(1) << std::endl;
-    std::cout << "Mujoco z position = " << currentPos(2)- 0.035 << " RK4 position = " << state(2) << std::endl;
-    for(int i=0;i<24;i++){
-        std::cout << "Mujoco q"<< i+1 << " = " << currentPos(i+6) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
+    //std::cout << "Mujoco x position = " << currentPos(0) << " RK4 position = " << state(0) << std::endl;
+    //std::cout << "Mujoco y position = " << currentPos(1) << " RK4 position = " << state(1) << std::endl;
+    //std::cout << "Mujoco z position = " << currentPos(2)- 0.035 << " RK4 position = " << state(2) << std::endl;
+    //for(int i=0;i<24;i++){
+     //   std::cout << "Mujoco q"<< i+1 << " = " << currentPos(i+6) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
         //std::cout << "Mujoco q"<< i+1 << " = " << relabelJoints(i) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
-    }
+    //}
     std::cout<<std::endl;
     /*std::cout << "Mujoco x velocity = " << currentVel(0) << " RK4 position = " << state(n) << std::endl;
     std::cout << "Mujoco y position = " << currentVel(1) << " RK4 position = " << state(n+1) << std::endl;

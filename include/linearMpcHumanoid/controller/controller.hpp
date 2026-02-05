@@ -82,7 +82,11 @@ private:
     int numEqConstraints_ = numDynamicsEqConstraints_ + numFrictionEqConstraints_; 
     int numIneqConstraints_ = numFrictionIneqConstraints_; //ci>0, 16 for Right foot coef, 16 for left foot coef
     int numConstraints_ = numEqConstraints_ + numIneqConstraints_;
-    int numDesVariables_ = 30 + 6 + 6 + 16 + 16; //joints acc(including base) + spatial force RFoot + spatial force LFoot
+
+    int numDesVariablesJoints_ = 30;
+    int numDesVariablesForces_ = 6 + 6;
+    int numDesVariablesCoeff_ = 16 + 16;
+    int numDesVariables_ = numDesVariablesJoints_ + numDesVariablesForces_ + numDesVariablesCoeff_; //joints acc(including base) + spatial force RFoot + spatial force LFoot
                                                  //...+ RFoot Coef + LFoot Coef
     int numVertex_ = 4; //Vertices in each foot
     int numCoeff_ = 4; //Number of coeff at each vertex (number of sides of pyramid friction)
@@ -117,9 +121,7 @@ private:
     qpOASES::SQProblem qp_;
     bool qp_initialized_ = false;
 
-    Eigen::VectorXd solveQP(qpOASES::SQProblem& qp,
-    bool& initialized,
-    const Eigen::MatrixXd& H,
+    Eigen::VectorXd solveQP(const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g);
 
     //-----------------------------------Foot
