@@ -18,7 +18,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& Robot, C
 Eigen::MatrixXd relabelMujocoMatrix(Robot& robot);
 
 int main() {
-  double simulationTime = 0.05;
+  double simulationTime = 4;
   double timeStep = 0.01;
 
   //Desired initial configuration for the simulation
@@ -37,7 +37,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.02, 0.00, 0.26 ;
+  com << 0.0, -0.02, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -79,7 +79,7 @@ int main() {
   //Simulation
   viewer.run([&]() {
         stand(nao,controller,clock,sim);
-        //q0 = nao.getJoints();
+        q0 = nao.getJoints();
         q_test = L*q0.segment(6,nao.getNumActualJoints()); 
         sim.applyJointPositions(q_test);
     }, clock);
@@ -120,7 +120,6 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     //relabelJoints = (relabelMujocoMatrix(robot).transpose()) * (currentPos.segment(7,24));
     //state.segment(6,6) = relabelJoints.segment(0,6);
     //state.segment(n,3) = currentVel.segment(0,3);
-  
     state = rk4Step(
         [&](const Eigen::VectorXd& x, double t)
         {
@@ -130,8 +129,8 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
         clock.getTime(),
         clock.getTimeStep()
         );
-
-    //std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
+    
+    std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
     //std::cout << "Mujoco x position = " << currentPos(0) << " RK4 position = " << state(0) << std::endl;
     //std::cout << "Mujoco y position = " << currentPos(1) << " RK4 position = " << state(1) << std::endl;
     //std::cout << "Mujoco z position = " << currentPos(2)- 0.035 << " RK4 position = " << state(2) << std::endl;
@@ -139,7 +138,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
      //   std::cout << "Mujoco q"<< i+1 << " = " << currentPos(i+6) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
         //std::cout << "Mujoco q"<< i+1 << " = " << relabelJoints(i) << " RK4 q"<<i+1 <<"= " << state(i+6) << std::endl;
     //}
-    std::cout<<std::endl;
+    //std::cout<<std::endl;
     /*std::cout << "Mujoco x velocity = " << currentVel(0) << " RK4 position = " << state(n) << std::endl;
     std::cout << "Mujoco y position = " << currentVel(1) << " RK4 position = " << state(n+1) << std::endl;
     std::cout << "Mujoco z position = " << currentVel(2) << " RK4 position = " << state(n+2) << std::endl << std::endl;*/
@@ -161,7 +160,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
 
     controller.standStep(in);
 
-    WBCOutput out = controller.WBC(state, t);
+    WBCOutput out = controller.WBC(t);
 
     //The linear and angular velocities in the state vector are spatial velocities
     //Before integrating linear velocity must change to classical definition

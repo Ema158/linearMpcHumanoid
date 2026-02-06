@@ -115,10 +115,10 @@ add_executable(offline_controller
 target_link_libraries(offline_controller controller_core)
 enable_sanitizers(offline_controller)
 
-#add_executable(mujoco_controller
-#    apps/mujoco/main.cpp
-#)
-#target_link_libraries(mujoco_controller mujoco_sim)
+add_executable(mujoco_controller
+    apps/mujoco/main.cpp
+)
+target_link_libraries(mujoco_controller mujoco_sim)
 
-#enable_strict_warnings(mujoco_controller)
-#enable_sanitizers(mujoco_controller)
+enable_strict_warnings(mujoco_controller)
+enable_sanitizers(mujoco_controller)
