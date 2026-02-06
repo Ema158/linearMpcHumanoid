@@ -10,11 +10,12 @@ Controller::Controller(Robot& robot,
     )
     :
     robot_(robot),
-    mpc_(mpc), 
-    qp_(numDesVariables_,numConstraints_),
+    mpc_(mpc),
     zmp_(zmp),
     rFCoeff_(rFCoeff),
-    lFCoeff_(lFCoeff)
+    lFCoeff_(lFCoeff), 
+    qp_(numDesVariables_,numConstraints_)
+    
 {
     std::cout<<"Controller Initiated" << std::endl;
     std::cout<<"Initial conditions of the center of mass: " << "c = " << robot_.getCoM()(0);
@@ -54,7 +55,7 @@ void Controller::standStep(const ControllerInput& in)
     //Update M,C, Jacobians, etc
     dyn_.computeAll(robot_);
     kin_.computeAll(robot_);
-
+    
     robot_.updateVelocityState(in.dq, dyn_.getAG());
     //Update CoM state for LIP model
     Eigen::Vector2d com_xy;
@@ -122,7 +123,8 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
         numDesVariablesCoeff_);
     //gradient construction
     Eigen::VectorXd g = Eigen::VectorXd::Zero(numDesVariables_);
-    g.segment(0,robot_.getNumJoints()) = 
+    
+    g.segment(0, n) = 
               (dyn_.getAG().transpose())*WC*dyn_.getAGpqp() 
             - (dyn_.getAG().transpose())*WC*(hGpRef) 
             - WJ*qppRef
@@ -130,11 +132,13 @@ WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
             - (kin_.getFeetJacobian().transpose())*WFeet*(footAccRef);
     
     Eigen::VectorXd qpSolution = solveQP(H, g);
+    
     forces = qpSolution.segment(numDesVariablesJoints_, numDesVariablesForces_);
     Eigen::VectorXd generalizedForces(n);
     generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n)) + dyn_.getC() 
                                         - (kin_.getFeetJacobian().transpose())*qpSolution.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
     torques = generalizedForces.segment(6,n-6);
+    
     //x have the base spatial acceleration wrt to base frame, before integreated It has to be wrt world frame
     Eigen::VectorXd accBaseWrtWrld = robot_.getX()[0].colPivHouseholderQr().solve(qpSolution.segment(0,6));
     //Also the order of linear-angular base velocity is inverted in the generalized velocity vector
@@ -164,7 +168,6 @@ void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
     beq.setZero();
     bineq.setZero();
 
-    const int idx_qdd   = 0; //0
     const int idx_nR    = robot_.getNumJoints(); //30
     const int idx_fR    = idx_nR + 3; //33
     const int idx_nL    = idx_fR + 3; //36
@@ -442,9 +445,28 @@ Eigen::VectorXd Controller::solveQP(
     ubA_ = ubA;
     //qpOASES::SQProblem qp2(numDesVariables_, numConstraints_);
 
-    status = qp_.init(Hsym.data(), g.data(),
-        A.data(), nullptr, nullptr,
-        lbA.data(), ubA.data(), nWSR);
+    auto check = [](const char* name, const Eigen::MatrixXd& M) {
+    if (!M.allFinite()) {
+        std::cerr << name << " has NaN or Inf\n";
+        std::abort();
+    }
+    };
+
+    auto checkv = [](const char* name, const Eigen::VectorXd& v) {
+        if (!v.allFinite()) {
+            std::cerr << name << " has NaN or Inf\n";
+            std::abort();
+        }
+    };
+
+    check("H", Hsym);
+    checkv("g", g);
+    check("A", A);
+    checkv("lbA", lbA);
+    checkv("ubA", ubA);
+    status = qp_.init(Hqp_.data(), g_.data(),
+        A_.data(), nullptr, nullptr,
+        lbA_.data(), ubA_.data(), nWSR);
         //qp_initialized_ = true;
     
     if (status != qpOASES::SUCCESSFUL_RETURN)
@@ -452,25 +474,7 @@ Eigen::VectorXd Controller::solveQP(
     std::cerr << "QP failed, status = " << status << std::endl;
     // optionally return previous solution or zero
     }
-    qp_.getPrimalSolution(qpp.data());
-    /*Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-    Htest = Eigen::MatrixXd::Identity(numDesVariables_, numDesVariables_);
-
-    Eigen::VectorXd gtest = Eigen::VectorXd::Zero(numDesVariables_);
-
-    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>
-    Atest = Eigen::MatrixXd::Zero(numConstraints_, numDesVariables_);
-
-    Eigen::VectorXd lbAtest = Eigen::VectorXd::Zero(numConstraints_);
-    Eigen::VectorXd ubAtest = Eigen::VectorXd::Zero(numConstraints_);
-
-    qpOASES::SQProblem qp3(numDesVariables_, numConstraints_);
-    qp3.init(Htest.data(), gtest.data(),
-            Atest.data(), nullptr, nullptr,
-            lbAtest.data(), ubAtest.data(), nWSR);
-    */
-
-    
+    qp_.getPrimalSolution(qpp.data()); 
     return qpp;
 }
 

@@ -67,10 +67,17 @@ private:
     Eigen::VectorXd state_; // 60 dimention vector of the current configuration and velocity
     
     Robot& robot_;
-    Dynamics dyn_;
-    Kinematics kin_;
     Mpc3dLip& mpc_;
     ZMP zmp_;
+
+    //-----------------------------------Foot
+    std::vector<Eigen::VectorXd> rFCoeff_;
+    std::vector<Eigen::VectorXd> lFCoeff_;
+
+    qpOASES::SQProblem qp_;
+
+    Dynamics dyn_;
+    Kinematics kin_;
     
     Eigen::MatrixXd frictionMatrix_ = Eigen::MatrixXd::Zero(3,4);
     double mu_ = 0.7; //friction coeff
@@ -118,16 +125,11 @@ private:
     double wForce_ = 1; //reaction forces
     double wFoot_ = 100000; //position and orientation of both feet
 
-    qpOASES::SQProblem qp_;
     bool qp_initialized_ = false;
 
     Eigen::VectorXd solveQP(const Eigen::MatrixXd& H,
     const Eigen::VectorXd& g);
-
-    //-----------------------------------Foot
-    std::vector<Eigen::VectorXd> rFCoeff_;
-    std::vector<Eigen::VectorXd> lFCoeff_;
-
+    
     void frictionConstraints(Eigen::MatrixXd& Aeq,
         Eigen::VectorXd& beq,
         Eigen::MatrixXd& Aineq,

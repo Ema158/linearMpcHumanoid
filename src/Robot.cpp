@@ -54,7 +54,7 @@ void Robot::forwardKinematics(){
     T_[0].block(3,0,1,4) << 0,0,0,1;
     
     std::vector<double> theta;
-    theta.resize(getNumActualJoints()); //theta is the Denavit Hartenberg parameter related with q_
+    theta.resize(getNumActualJoints() + 1); //theta is the Denavit Hartenberg parameter related with q_
     
     theta[0] = q_(0 + BASEDOF);
     theta[1] = q_(1 + BASEDOF) + (3.0/4)*pi;

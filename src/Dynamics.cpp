@@ -187,13 +187,15 @@ Eigen::VectorXd Dynamics::computeJpqpFrame(const Robot& robot,
     forwardNewtonEuler(robot, qD, qDD, vel, acc, f);
 
     Jpqp = acc[frame]; //spatial acceleration of frame wrt frame
-
+    
     //We need spatial acceleration wrt world frame because state is wrt world frame
     //We need to rotate using 0^R_frame
-    Eigen::MatrixXd Rot6x6_frame = Eigen::MatrixXd(6,6);
+    Eigen::MatrixXd Rot6x6_frame = Eigen::MatrixXd::Zero(6,6);
     Rot6x6_frame.block(0,0,3,3) = robot.getT()[frame].block(0,0,3,3);
     Rot6x6_frame.block(3,3,3,3) = robot.getT()[frame].block(0,0,3,3);
+
     Jpqp = Rot6x6_frame*Jpqp;
+    
     return Jpqp;
 }
 
@@ -204,7 +206,9 @@ void Dynamics::computeAll(const Robot& robot)
     Cg_ = computeC(robot,false);
     computeM(robot);
     centroidalMatrixAndBias(robot);
+    JpqpR_.resize(6);
     JpqpR_ = computeJpqpFrame(robot,7);
+    JpqpL_.resize(6);
     JpqpL_ = computeJpqpFrame(robot,14);
     Jpqp_.resize(12);
     Jpqp_.segment(0,6) = JpqpR_;
