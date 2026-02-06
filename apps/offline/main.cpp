@@ -28,7 +28,7 @@ int main() {
     
     //Initial position of the center of mass for simulation
     Eigen::Vector3d com = Eigen::Vector3d::Zero();
-    com << 0.02, 0.0, 0.26 ;
+    com << -0.02, 0.0, 0.26 ;
     
     //Inverse kinematics to compute the initial joint configuration
     Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -102,7 +102,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
 
     controller.standStep(in);
 
-    WBCOutput out = controller.WBC(state, t);
+    WBCOutput out = controller.WBC(t);
 
     //The linear and angular velocities in the state vector are spatial velocities
     //Before integrating linear velocity must change to classical definition

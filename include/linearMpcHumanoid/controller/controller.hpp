@@ -58,7 +58,7 @@ public:
 
     void standStep(const ControllerInput& in);
 
-    WBCOutput WBC(const Eigen::VectorXd& state, double t);
+    WBCOutput WBC(double t);
 
     const Eigen::VectorXd& getTorques(){return tau_;}
 
@@ -73,8 +73,6 @@ private:
     //-----------------------------------Foot
     std::vector<Eigen::VectorXd> rFCoeff_;
     std::vector<Eigen::VectorXd> lFCoeff_;
-
-    qpOASES::SQProblem qp_;
 
     Dynamics dyn_;
     Kinematics kin_;
@@ -125,6 +123,7 @@ private:
     double wForce_ = 1; //reaction forces
     double wFoot_ = 100000; //position and orientation of both feet
 
+    qpOASES::SQProblem qp_;
     bool qp_initialized_ = false;
 
     Eigen::VectorXd solveQP(const Eigen::MatrixXd& H,

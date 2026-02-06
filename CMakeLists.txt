@@ -104,6 +104,8 @@ target_link_libraries(mujoco_sim PUBLIC
     glfw
 )
 
+enable_sanitizers(mujoco_sim)
+
 # -------------------------------
 # Executables
 # -------------------------------
@@ -117,3 +119,6 @@ enable_sanitizers(offline_controller)
 #    apps/mujoco/main.cpp
 #)
 #target_link_libraries(mujoco_controller mujoco_sim)
+
+#enable_strict_warnings(mujoco_controller)
+#enable_sanitizers(mujoco_controller)

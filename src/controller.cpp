@@ -73,12 +73,12 @@ void Controller::standStep(const ControllerInput& in)
     //WBC
     state_.segment(0, n) = in.q;
     state_.segment(n, n) = in.dq;
-    WBCOutput out = WBC(state_, in.time);
+    WBCOutput out = WBC(in.time);
 
     tau_ = out.tau;   
 }
 
-WBCOutput Controller::WBC(const Eigen::VectorXd& state, double t)
+WBCOutput Controller::WBC(double t)
 {
     int n = robot_.getNumJoints();
     Eigen::VectorXd qDD(n); // joints acceleration 
