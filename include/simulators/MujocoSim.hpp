@@ -29,6 +29,7 @@ public:
   ControllerInput getControllerInput() const;
   void applyTorques(const Eigen::VectorXd& tau);
   void applyJointPositions(const Eigen::VectorXd& qdes);
+  void applyJointVelocity(const Eigen::VectorXd& qp_des);
 
   // ---- gravity compensation ----
   Eigen::VectorXd computeGravityTorques();
@@ -42,6 +43,8 @@ public:
   mjData* data() const { return d_; }
 
   void getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v);
+
+  Eigen::Vector3d getCoM();
 
 private:
   // ---- MuJoCo core ----
@@ -57,6 +60,6 @@ private:
   void loadModel(const std::string& model_path, const Eigen::VectorXd& q0);
 
   //-----PD gains for position controller----------------
-  Eigen::VectorXd kp_, kd_;
+  Eigen::VectorXd kp_, kd_, kv_;
   
 };

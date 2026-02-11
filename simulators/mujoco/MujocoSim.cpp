@@ -79,10 +79,13 @@ void MujocoSim::loadModel(const std::string& model_path, const Eigen::VectorXd& 
   d_->qpos[2] = q0(2) + 0.035;   // z (above ground) 0.035 cause there is an offset between my base frame and .xml frame
 
   // base orientation (quaternion)
-  d_->qpos[3] = 1.0;   // w
-  d_->qpos[4] = 0.0;   // x
-  d_->qpos[5] = 0.0;   // y
-  d_->qpos[6] = 0.0;   // z
+  //Curently the orientation of the base is represented as eulerAngles
+  Eigen::Vector3d eulerAngles = q0.segment(3,3);
+  Eigen::VectorXd quat = eulerAnglesToQuaternion(eulerAngles);
+  d_->qpos[3] = quat(0);   // w
+  d_->qpos[4] = quat(1);   // x
+  d_->qpos[5] = quat(2);   // y
+  d_->qpos[6] = quat(3);   // z
   
   // APPLY IT
   mj_forward(m_, d_);
@@ -143,6 +146,7 @@ void MujocoSim::applyTorques(const Eigen::VectorXd& tau) {
   }
 
   Eigen::Map<Eigen::VectorXd>(d_->ctrl, nu_) = tau;
+  //std::cout<<"Torque applied = " << tau(11) << std::endl;
 }
 
 // -----------------------------
@@ -164,8 +168,8 @@ Eigen::VectorXd MujocoSim::computeGravityTorques() {
 
 void MujocoSim::applyJointPositions(const Eigen::VectorXd& q_des)
 {
-  kp_.setConstant(nu_, 50.0);
-  kd_.setConstant(nu_, 5.0);
+  kp_.setConstant(nu_, 50.0); //50
+  kd_.setConstant(nu_, 0.0);
 
   if (q_des.size() != nu_) {
     throw std::runtime_error(
@@ -188,8 +192,45 @@ void MujocoSim::applyJointPositions(const Eigen::VectorXd& q_des)
     double kd = kd_[i];
 
     tau[i] = kp * (q_des[i] - q);// - kd * dq;
+    if(i==12){
+      std::cout<<"Desired q " << q_des[i] << std::endl;
+      std::cout<<"Current q " << q << std::endl;
+      std::cout<<"Torque applied = " << tau(i) << std::endl;
+    }    
+  }
+  applyTorques(tau);
+}
+
+void MujocoSim::applyJointVelocity(const Eigen::VectorXd& qp_des)
+{
+  kp_.setConstant(nu_, 1); //50
+
+  if (qp_des.size() != nu_) {
+    throw std::runtime_error(
+      "applyJointPositions(): q_des dimension mismatch"
+    );
   }
 
+  Eigen::VectorXd tau(nu_);
+  tau.setZero();
+
+  for (int i = 0; i < nu_; ++i) {
+    int joint_id = m_->actuator_trnid[2*i];   // actuator → joint
+    int qpos_adr = m_->jnt_qposadr[joint_id];
+    int qvel_adr = m_->jnt_dofadr[joint_id];
+    
+    double q  = d_->qpos[qpos_adr];
+    double dq = d_->qvel[qvel_adr];
+
+    double kp = kp_[i];   // your gains
+
+    tau[i] = kp * (qp_des[i] - dq);// - kd * dq;
+    if(i==12){
+      std::cout<<"Desired dq " << qp_des[i] << std::endl;
+      std::cout<<"Current dq " << dq << std::endl;
+      std::cout<<"Torque applied = " << tau(i) << std::endl;
+    }    
+  }
   applyTorques(tau);
 }
 
@@ -198,3 +239,14 @@ void MujocoSim::getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v)
   q = Eigen::Map<Eigen::VectorXd>(d_->qpos, m_->nq);
   v = Eigen::Map<Eigen::VectorXd>(d_->qvel, m_->nv);
 }
+
+Eigen::Vector3d MujocoSim::getCoM()
+{
+  Eigen::Vector3d com;
+  com << d_->subtree_com[0],
+       d_->subtree_com[1],
+       d_->subtree_com[2];
+  return com;
+}
+
+    

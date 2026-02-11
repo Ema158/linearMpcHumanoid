@@ -38,8 +38,8 @@ void MujocoViewer::initMujoco()
 
     mjv_defaultCamera(&cam_);
     cam_.distance = 1.5; //1.5
-    cam_.elevation = -5; //20
-    cam_.azimuth = 0; //150
+    cam_.elevation = -20; //20
+    cam_.azimuth = 90; //150
 
     mjv_defaultOption(&opt_);
 

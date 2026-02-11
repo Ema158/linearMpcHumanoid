@@ -115,13 +115,13 @@ private:
     const Eigen::VectorXd PDFeetAcc(double t);
 
     //---------------------------------QP Weights for the WBC-----------------------------------------
-    double wCoML_ = 4000; //linear momentum weight
+    double wCoML_ = 4000; //linear momentum weight 4000
     double wCoMK_ = 0; //angular momentum rate weight
     double wBasePos_ = 10; //base position
     double wBaseAng_ = 10; //base attitude
     double wJoints_ = 1; //rotational joints
     double wForce_ = 1; //reaction forces
-    double wFoot_ = 100000; //position and orientation of both feet
+    double wFoot_ = 100000; //position and orientation of both feet 100000
 
     qpOASES::SQProblem qp_;
     bool qp_initialized_ = false;

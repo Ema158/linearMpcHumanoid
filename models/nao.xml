@@ -24,7 +24,7 @@
       rgba="0.2 0.2 0.8 1"/>
   </default>
 
-  <joint damping="0.5"/>
+  <joint damping="0.0"/>
   </default>
 
   <compiler angle="radian"/>
@@ -42,7 +42,7 @@
     mass="1.0496"
     diaginertia="0.005 0.005 0.005"/>
   <geom class="body_geom" size="0.05 0.05 0.1" rgba="0.8 0.2 0.2 1"/>
-  <joint type="free" damping="1"/>
+  <joint type="free" damping="0"/>
     <body name="Neck" pos="0 0 0.1265">
       <inertial pos="-1e-05 0 -0.02742" quat="0.70765 -0.00173495 0.00151894 0.706559" mass="0.07842" diaginertia="1.70396e-05 1.60324e-05 5.53348e-06"/>
       <joint name="HeadYaw" pos="0 0 0" axis="0 0 1" range="-2.08567 2.08567" actuatorfrcrange="-1.547 1.547"/>

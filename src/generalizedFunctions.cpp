@@ -204,3 +204,94 @@ void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::Vecto
     //In centroidal matrix base velocity in v is wrt base frame
     v.segment(0,6) = X01*v.segment(0,6);
 }
+
+Eigen::Vector3d quaternionToEulerAngles(const Eigen::VectorXd& quat)
+{
+    Eigen::VectorXd eulerAngles(3);
+    double w = quat(0);
+    double x = quat(1);
+    double y = quat(2);
+    double z = quat(3);
+
+    // Roll (x-axis rotation)
+    eulerAngles(0) = std::atan2(
+        2.0 * (w*x + y*z),
+        1.0 - 2.0 * (x*x + y*y)
+    );
+    // Pitch (y-axis rotation)
+    double sinp = 2.0 * (w*y - z*x);
+    sinp = std::clamp(sinp, -1.0, 1.0);
+    eulerAngles(1) = std::asin(sinp);
+
+    // Yaw (z-axis rotation)
+    eulerAngles(2) = std::atan2(
+        2.0 * (w*z + x*y),
+        1.0 - 2.0 * (y*y + z*z));
+
+    return eulerAngles;
+}
+
+Eigen::VectorXd eulerAnglesToQuaternion(const Eigen::Vector3d& eulerAngles)
+{
+    double roll  = eulerAngles(0);     // x-axis
+    double pitch = eulerAngles(1);   // y-axis
+    double yaw   = eulerAngles(2);     // z-axis
+
+    double cr = std::cos(roll  * 0.5);
+    double sr = std::sin(roll  * 0.5);
+    double cp = std::cos(pitch * 0.5);
+    double sp = std::sin(pitch * 0.5);
+    double cy = std::cos(yaw   * 0.5);
+    double sy = std::sin(yaw   * 0.5);
+
+    double w = cr*cp*cy + sr*sp*sy;
+    double x = sr*cp*cy - cr*sp*sy;
+    double y = cr*sp*cy + sr*cp*sy;
+    double z = cr*cp*sy - sr*sp*cy;
+
+    // Optional but recommended:
+    double norm = std::sqrt(w*w + x*x + y*y + z*z);
+    w /= norm;
+    x /= norm;
+    y /= norm;
+    z /= norm;
+
+    Eigen::VectorXd quat(4);
+    quat(0) = w;
+    quat(1) = x;
+    quat(2) = y;
+    quat(3) = z;
+
+    return quat;
+}
+
+Eigen::Matrix3d quaternionToRotationMatrix(const Eigen::VectorXd& quat)
+{
+    double w = quat(0);
+    double x = quat(1);
+    double y = quat(2);
+    double z = quat(3);
+
+    // Normalize
+    double norm = std::sqrt(w*w + x*x + y*y + z*z);
+    w /= norm;
+    x /= norm;
+    y /= norm;
+    z /= norm;
+
+    Eigen::Matrix3d R;
+
+    R(0,0) = 1.0 - 2.0*(y*y + z*z);
+    R(0,1) = 2.0*(x*y - w*z);
+    R(0,2) = 2.0*(x*z + w*y);
+
+    R(1,0) = 2.0*(x*y + w*z);
+    R(1,1) = 1.0 - 2.0*(x*x + z*z);
+    R(1,2) = 2.0*(y*z - w*x);
+
+    R(2,0) = 2.0*(x*z - w*y);
+    R(2,1) = 2.0*(y*z + w*x);
+    R(2,2) = 1.0 - 2.0*(x*x + y*y);
+
+    return R;
+}

@@ -30,3 +30,9 @@ double polyval(const Eigen::VectorXd& poly, double x);
 const Eigen::VectorXd polyder(const Eigen::VectorXd& poly);
 
 void swapBaseVelocityAndRefToWorldFrame(const Eigen::MatrixXd& X01, Eigen::VectorXd& v);    
+
+Eigen::Vector3d quaternionToEulerAngles(const Eigen::VectorXd& quat);
+
+Eigen::VectorXd eulerAnglesToQuaternion(const Eigen::Vector3d& eulerAngles);
+
+Eigen::Matrix3d quaternionToRotationMatrix(const Eigen::VectorXd& quat);
