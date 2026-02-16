@@ -109,6 +109,8 @@ int main() {
 
         //sim.applyTorques(tau_test);
         std::vector<jointsIndex> joints = {
+            jointsIndex::HeadYaw,
+            jointsIndex::HeadPitch,
             jointsIndex::LHipYawPitch,
             jointsIndex::LHipRoll,
             jointsIndex::LHipPitch,
@@ -120,8 +122,8 @@ int main() {
             jointsIndex::RHipPitch,
             jointsIndex::RKneePitch,
             jointsIndex::RAnklePitch,
-            jointsIndex::RAnkleRoll
-            /*jointsIndex::LShoulderPitch,
+            jointsIndex::RAnkleRoll,
+            jointsIndex::LShoulderPitch,
             jointsIndex::LShoulderRoll,
             jointsIndex::LElbowRoll,
             jointsIndex::LElbowYaw,
@@ -130,9 +132,9 @@ int main() {
             jointsIndex::RShoulderRoll,
             jointsIndex::RElbowRoll,
             jointsIndex::RElbowYaw,
-            jointsIndex::RWristYaw*/
+            jointsIndex::RWristYaw
         };
-        sim.applyTorquesV2(joints, tau_test.segment(2,12));
+        sim.applyTorquesV2(joints, tau_test);
 
         std::vector<jointsIndex> posJoints = {
             /*jointsIndex::LHipYawPitch,
@@ -224,7 +226,7 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     //=====================================Joints feedback
     Eigen::VectorXd relabelJoints(24); 
     relabelJoints = (relabelMujocoMatrix(robot).transpose()) * (currentPos.segment(7,24));
-    state.segment(6,24) = relabelJoints;
+    //state.segment(6,24) = relabelJoints;
     state.segment(6,12) = relabelJoints.segment(0,12);
     //std::cout<<relabelJoints.segment(22,2)<<std::endl;
     //state.segment(18,5) = relabelJoints.segment(12,5);
