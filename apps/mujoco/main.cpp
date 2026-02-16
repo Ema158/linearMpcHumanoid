@@ -105,7 +105,7 @@ int main() {
         tau0 = controller.getTorques();
 
         tau_test = L*tau0; 
-        q_test = L*q0.segment(6,nao.getNumActualJoints()); 
+        //q_test = L*q0.segment(6,nao.getNumActualJoints()); 
 
         //sim.applyTorques(tau_test);
         std::vector<jointsIndex> joints = {
@@ -137,7 +137,9 @@ int main() {
         sim.applyTorquesV2(joints, tau_test);
 
         std::vector<jointsIndex> posJoints = {
-            /*jointsIndex::LHipYawPitch,
+            jointsIndex::HeadYaw,
+            jointsIndex::HeadPitch,
+            jointsIndex::LHipYawPitch,
             jointsIndex::LHipRoll,
             jointsIndex::LHipPitch,
             jointsIndex::LKneePitch,
@@ -148,7 +150,7 @@ int main() {
             jointsIndex::RHipPitch,
             jointsIndex::RKneePitch,
             jointsIndex::RAnklePitch,
-            jointsIndex::RAnkleRoll,*/
+            jointsIndex::RAnkleRoll,
             jointsIndex::LShoulderPitch,
             jointsIndex::LShoulderRoll,
             jointsIndex::LElbowRoll,
@@ -160,7 +162,7 @@ int main() {
             jointsIndex::RElbowYaw,
             jointsIndex::RWristYaw,
         };
-        //sim.applyJointPositionsV2(posJoints, q_test.segment(14,10));
+        //sim.applyJointPositionsV2(posJoints, q_test);
 
         std::vector<jointsIndex> headJoints = {
             jointsIndex::HeadYaw,
@@ -225,6 +227,8 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
 
     //=====================================Joints feedback
     Eigen::VectorXd relabelJoints(24); 
+    assert(currentPos.size() >= 31);
+    
     relabelJoints = (relabelMujocoMatrix(robot).transpose()) * (currentPos.segment(7,24));
     //state.segment(6,24) = relabelJoints;
     state.segment(6,12) = relabelJoints.segment(0,12);
@@ -303,7 +307,7 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, C
 
 Eigen::MatrixXd relabelMujocoMatrix(Robot& robot)
 {
-    Eigen::MatrixXd L(robot.getNumActualJoints(), robot.getNumActualJoints());
+    Eigen::MatrixXd L = Eigen::MatrixXd::Zero(robot.getNumActualJoints(), robot.getNumActualJoints());
     int numHeadJoints = 2;
     int numLegJoints = 6;
     int numArmJoints = 5;

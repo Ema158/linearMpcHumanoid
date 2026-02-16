@@ -236,6 +236,11 @@ void MujocoSim::applyJointPositionsV2(const std::vector<jointsIndex>& joints, co
 
 void MujocoSim::getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v)
 {
+  int id = mj_name2id(m_, mjOBJ_JOINT, "HeadYaw");
+    int adr = m_->jnt_qposadr[id];
+
+    std::cout << "Raw Mujoco Head: "
+          << d_->qpos[adr] << std::endl;
   q = Eigen::Map<Eigen::VectorXd>(d_->qpos, m_->nq);
   v = Eigen::Map<Eigen::VectorXd>(d_->qvel, m_->nv);
 }
