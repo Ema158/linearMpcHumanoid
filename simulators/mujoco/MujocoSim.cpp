@@ -70,9 +70,17 @@ void MujocoSim::loadModel(const std::string& model_path, const Eigen::VectorXd& 
 
   //Right arm
   set_qpos0("RShoulderPitch", q0(18));
+  set_qpos0("RShoulderRoll", q0(19));
+  set_qpos0("RElbowYaw", q0(20));
+  set_qpos0("RElbowRoll", q0(21));
+  set_qpos0("RWristYaw", q0(22));
 
   //Left arm
   set_qpos0("LShoulderPitch", -q0(23));
+  set_qpos0("LShoulderRoll", q0(24));
+  set_qpos0("LElbowYaw", q0(25));
+  set_qpos0("LElbowRoll", q0(26));
+  set_qpos0("LWristYaw", q0(27));
 
   //Head
   set_qpos0("HeadYaw", q0(28));
@@ -236,11 +244,6 @@ void MujocoSim::applyJointPositionsV2(const std::vector<jointsIndex>& joints, co
 
 void MujocoSim::getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v)
 {
-  int id = mj_name2id(m_, mjOBJ_JOINT, "HeadYaw");
-    int adr = m_->jnt_qposadr[id];
-
-    std::cout << "Raw Mujoco Head: "
-          << d_->qpos[adr] << std::endl;
   q = Eigen::Map<Eigen::VectorXd>(d_->qpos, m_->nq);
   v = Eigen::Map<Eigen::VectorXd>(d_->qvel, m_->nv);
 }

@@ -175,14 +175,14 @@
 
   <motor name="LShoulderPitch"   joint="LShoulderPitch"   gear="1"/>
   <motor name="LShoulderRoll"   joint="LShoulderRoll"   gear="1"/>
-  <motor name="LElbowRoll"   joint="LElbowRoll"   gear="1"/>
   <motor name="LElbowYaw"   joint="LElbowYaw"   gear="1"/>
+  <motor name="LElbowRoll"   joint="LElbowRoll"   gear="1"/>
   <motor name="LWristYaw"   joint="LWristYaw"   gear="1"/>
 
   <motor name="RShoulderPitch"   joint="RShoulderPitch"   gear="1"/>
   <motor name="RShoulderRoll"   joint="RShoulderRoll"   gear="1"/>
-  <motor name="RElbowRoll"   joint="RElbowRoll"   gear="1"/>
   <motor name="RElbowYaw"   joint="RElbowYaw"   gear="1"/>
+  <motor name="RElbowRoll"   joint="RElbowRoll"   gear="1"/>
   <motor name="RWristYaw"   joint="RWristYaw"   gear="1"/>
   </actuator>
 </mujoco>

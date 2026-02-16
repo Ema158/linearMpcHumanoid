@@ -42,7 +42,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.00, 0.0, 0.26 ;
+  com << 0.00, 0.02, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -83,18 +83,6 @@ int main() {
 
   Eigen::VectorXd v0(24);
   Eigen::VectorXd v_test(24);
-  //Simulation
-  /*viewer.run([&]() {
-        stand(nao,controller,clock,sim);
-        //q0 = nao.getJoints();
-        //std::cout<<nao.getJoints()<<std::endl<<std::endl;
-        //q_test = L*q0.segment(6,nao.getNumActualJoints()); 
-        //sim.applyJointPositions(q_test);
-
-        v0 = nao.getJointsVelocity();
-        v_test = L*v0.segment(6,nao.getNumActualJoints()); 
-        sim.applyJointVelocity(v_test);
-    }, clock);*/
 
   Eigen::VectorXd tau_test = Eigen::VectorXd::Zero(24);
   Eigen::VectorXd tau0(24);
@@ -105,9 +93,7 @@ int main() {
         tau0 = controller.getTorques();
 
         tau_test = L*tau0; 
-        //q_test = L*q0.segment(6,nao.getNumActualJoints()); 
 
-        //sim.applyTorques(tau_test);
         std::vector<jointsIndex> joints = {
             jointsIndex::HeadYaw,
             jointsIndex::HeadPitch,
@@ -125,50 +111,16 @@ int main() {
             jointsIndex::RAnkleRoll,
             jointsIndex::LShoulderPitch,
             jointsIndex::LShoulderRoll,
-            jointsIndex::LElbowRoll,
             jointsIndex::LElbowYaw,
+            jointsIndex::LElbowRoll,
             jointsIndex::LWristYaw,
             jointsIndex::RShoulderPitch,
             jointsIndex::RShoulderRoll,
-            jointsIndex::RElbowRoll,
             jointsIndex::RElbowYaw,
-            jointsIndex::RWristYaw
-        };
-        sim.applyTorquesV2(joints, tau_test);
-
-        std::vector<jointsIndex> posJoints = {
-            jointsIndex::HeadYaw,
-            jointsIndex::HeadPitch,
-            jointsIndex::LHipYawPitch,
-            jointsIndex::LHipRoll,
-            jointsIndex::LHipPitch,
-            jointsIndex::LKneePitch,
-            jointsIndex::LAnklePitch,
-            jointsIndex::LAnkleRoll,
-            jointsIndex::RHipYawPitch,
-            jointsIndex::RHipRoll,
-            jointsIndex::RHipPitch,
-            jointsIndex::RKneePitch,
-            jointsIndex::RAnklePitch,
-            jointsIndex::RAnkleRoll,
-            jointsIndex::LShoulderPitch,
-            jointsIndex::LShoulderRoll,
-            jointsIndex::LElbowRoll,
-            jointsIndex::LElbowYaw,
-            jointsIndex::LWristYaw,
-            jointsIndex::RShoulderPitch,
-            jointsIndex::RShoulderRoll,
             jointsIndex::RElbowRoll,
-            jointsIndex::RElbowYaw,
             jointsIndex::RWristYaw,
         };
-        //sim.applyJointPositionsV2(posJoints, q_test);
-
-        std::vector<jointsIndex> headJoints = {
-            jointsIndex::HeadYaw,
-            jointsIndex::HeadPitch
-        };
-        //sim.applyJointPositionsV2(headJoints, q_test.segment(0,2));
+        sim.applyTorquesV2(joints, tau_test);
     }, clock);
  
   return 0;
@@ -230,20 +182,12 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     assert(currentPos.size() >= 31);
     
     relabelJoints = (relabelMujocoMatrix(robot).transpose()) * (currentPos.segment(7,24));
-    //state.segment(6,24) = relabelJoints;
-    state.segment(6,12) = relabelJoints.segment(0,12);
-    //std::cout<<relabelJoints.segment(22,2)<<std::endl;
-    //state.segment(18,5) = relabelJoints.segment(12,5);
-    std::cout<< " Head " << std::endl << relabelJoints(22) << std::endl;
+    state.segment(6,24) = relabelJoints;
 
     Eigen::VectorXd relabelJointsVel(24); 
     relabelJointsVel = (relabelMujocoMatrix(robot).transpose()) * (currentVel.segment(6,24));
-    //state.segment(n+6,24) = relabelJointsVel;
-    state.segment(n+6,12) = relabelJointsVel.segment(0,12);
-    //state.segment(18,5) = relabelJointsVel.segment(12,5);
-    std::cout<< " Head Vel" << std::endl << relabelJointsVel(22) << std::endl;
+    state.segment(n+6,24) = relabelJointsVel;
 
-    //std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
     std::cout << "Mujoco x position = " << T01(0,3) << " RK4 position = " << state(0) << std::endl;
     std::cout << "Mujoco y position = " << T01(1,3) << " RK4 position = " << state(1) << std::endl;
     std::cout << "Mujoco z position = " << T01(2,3) << " RK4 position = " << state(2) << std::endl;  
@@ -265,10 +209,6 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     
     robot.updateVelocityState(state.segment(n,n), dyn.getAG());
     clock.step(); 
-    /*Eigen::Vector3d mujCom = sim.getCoM();  
-    std::cout<<"t = " << clock.getTime() << ", x = " << robot.getCoM()(0) << " mujocoCoM = " << mujCom(0) << std::endl; 
-    std::cout<<"t = " << clock.getTime() << ", y = " << robot.getCoM()(1) << " mujocoCoM = " << mujCom(1) << std::endl; 
-    std::cout<<"t = " << clock.getTime() << ", z = " << robot.getCoM()(2) << " mujocoCoM = " << mujCom(2) << std::endl; */
     std::cout<<std::endl;
 }
 

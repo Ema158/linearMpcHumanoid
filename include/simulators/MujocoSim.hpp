@@ -31,14 +31,14 @@ enum class jointsIndex{
 
   LShoulderPitch,
   LShoulderRoll,
-  LElbowRoll, 
   LElbowYaw,
+  LElbowRoll, 
   LWristYaw,
 
   RShoulderPitch,
   RShoulderRoll,
-  RElbowRoll,
   RElbowYaw,
+  RElbowRoll,
   RWristYaw,
 };
 

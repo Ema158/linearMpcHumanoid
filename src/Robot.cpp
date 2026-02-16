@@ -237,8 +237,6 @@ void Robot::computeCoM(){
     CoM_ = com/mass_;
 }
 
-
-
 Eigen::VectorXd initialConfiguration(){
     Eigen::VectorXd q = Eigen::VectorXd::Zero(30); //Initial configuration of the robot
     q << -0.0185, 0, 0.282, 0, 0, 0, //base position and orientation 0-5
@@ -255,8 +253,8 @@ const Eigen::VectorXd Robot::desiredPosture(){
     qDes << -0.0185,0.00,0.282,0,0,0, //base
             0,0,-0.5,0.8,-0.3,0, //right leg
             0,0,-0.5,0.8,-0.3,0, //left leg
-            1.6,0,0,0,0, //right arm
-            -1.6,0,0,0,0, //left arm
+            1.6, 0, 0, 0, 0, //right arm
+            -1.6, 0, 0, 0, 0, //left arm
             0,0; //head
     return qDes;
 }
