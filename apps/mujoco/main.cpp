@@ -100,9 +100,71 @@ int main() {
   Eigen::VectorXd tau0(24);
   viewer.run([&]() {
         stand(nao,controller,clock,sim);
+
+        q0 = nao.getJoints();
         tau0 = controller.getTorques();
+
         tau_test = L*tau0; 
-        sim.applyTorques(tau_test);
+        q_test = L*q0.segment(6,nao.getNumActualJoints()); 
+
+        //sim.applyTorques(tau_test);
+        std::vector<jointsIndex> joints = {
+            jointsIndex::LHipYawPitch,
+            jointsIndex::LHipRoll,
+            jointsIndex::LHipPitch,
+            jointsIndex::LKneePitch,
+            jointsIndex::LAnklePitch,
+            jointsIndex::LAnkleRoll,
+            jointsIndex::RHipYawPitch,
+            jointsIndex::RHipRoll,
+            jointsIndex::RHipPitch,
+            jointsIndex::RKneePitch,
+            jointsIndex::RAnklePitch,
+            jointsIndex::RAnkleRoll
+            /*jointsIndex::LShoulderPitch,
+            jointsIndex::LShoulderRoll,
+            jointsIndex::LElbowRoll,
+            jointsIndex::LElbowYaw,
+            jointsIndex::LWristYaw,
+            jointsIndex::RShoulderPitch,
+            jointsIndex::RShoulderRoll,
+            jointsIndex::RElbowRoll,
+            jointsIndex::RElbowYaw,
+            jointsIndex::RWristYaw*/
+        };
+        sim.applyTorquesV2(joints, tau_test.segment(2,12));
+
+        std::vector<jointsIndex> posJoints = {
+            /*jointsIndex::LHipYawPitch,
+            jointsIndex::LHipRoll,
+            jointsIndex::LHipPitch,
+            jointsIndex::LKneePitch,
+            jointsIndex::LAnklePitch,
+            jointsIndex::LAnkleRoll,
+            jointsIndex::RHipYawPitch,
+            jointsIndex::RHipRoll,
+            jointsIndex::RHipPitch,
+            jointsIndex::RKneePitch,
+            jointsIndex::RAnklePitch,
+            jointsIndex::RAnkleRoll,*/
+            jointsIndex::LShoulderPitch,
+            jointsIndex::LShoulderRoll,
+            jointsIndex::LElbowRoll,
+            jointsIndex::LElbowYaw,
+            jointsIndex::LWristYaw,
+            jointsIndex::RShoulderPitch,
+            jointsIndex::RShoulderRoll,
+            jointsIndex::RElbowRoll,
+            jointsIndex::RElbowYaw,
+            jointsIndex::RWristYaw,
+        };
+        //sim.applyJointPositionsV2(posJoints, q_test.segment(14,10));
+
+        std::vector<jointsIndex> headJoints = {
+            jointsIndex::HeadYaw,
+            jointsIndex::HeadPitch
+        };
+        //sim.applyJointPositionsV2(headJoints, q_test.segment(0,2));
     }, clock);
  
   return 0;
@@ -162,13 +224,18 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     //=====================================Joints feedback
     Eigen::VectorXd relabelJoints(24); 
     relabelJoints = (relabelMujocoMatrix(robot).transpose()) * (currentPos.segment(7,24));
-    //state.segment(6,24) = relabelJoints;
+    state.segment(6,24) = relabelJoints;
     state.segment(6,12) = relabelJoints.segment(0,12);
+    //std::cout<<relabelJoints.segment(22,2)<<std::endl;
+    //state.segment(18,5) = relabelJoints.segment(12,5);
+    std::cout<< " Head " << std::endl << relabelJoints(22) << std::endl;
 
     Eigen::VectorXd relabelJointsVel(24); 
     relabelJointsVel = (relabelMujocoMatrix(robot).transpose()) * (currentVel.segment(6,24));
     //state.segment(n+6,24) = relabelJointsVel;
     state.segment(n+6,12) = relabelJointsVel.segment(0,12);
+    //state.segment(18,5) = relabelJointsVel.segment(12,5);
+    std::cout<< " Head Vel" << std::endl << relabelJointsVel(22) << std::endl;
 
     //std::cout<<robot.getCoM()(1)<<std::endl<<std::endl;
     std::cout << "Mujoco x position = " << T01(0,3) << " RK4 position = " << state(0) << std::endl;

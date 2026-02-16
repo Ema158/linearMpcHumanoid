@@ -74,6 +74,10 @@ void MujocoSim::loadModel(const std::string& model_path, const Eigen::VectorXd& 
   //Left arm
   set_qpos0("LShoulderPitch", -q0(23));
 
+  //Head
+  set_qpos0("HeadYaw", q0(28));
+  set_qpos0("HeadPitch", q0(29));
+
   d_->qpos[0] = q0(0);   // x
   d_->qpos[1] = q0(1);   // y
   d_->qpos[2] = q0(2) + 0.035;   // z (above ground) 0.035 cause there is an offset between my base frame and .xml frame
@@ -146,24 +150,23 @@ void MujocoSim::applyTorques(const Eigen::VectorXd& tau) {
   }
 
   Eigen::Map<Eigen::VectorXd>(d_->ctrl, nu_) = tau;
-  //std::cout<<"Torque applied = " << tau(11) << std::endl;
 }
 
-// -----------------------------
-// Gravity compensation
-// -----------------------------
+void MujocoSim::applyTorquesV2(const std::vector<jointsIndex>& joints, const Eigen::VectorXd& tau) {
+  if (tau.size() != joints.size()) {
+    throw std::runtime_error(
+      "applyTorques(): tau dimension mismatch"
+    );
+  }
+  
+  for(int i = 0; i<joints.size(); i++){
+    int index = static_cast<int>(joints[i]);
 
-Eigen::VectorXd MujocoSim::computeGravityTorques() {
-  // Compute bias forces (gravity + Coriolis)
-  mj_inverse(m_, d_);
+    if (index < 0 || index >= m_->nu)
+            throw std::runtime_error("Invalid actuator index");
 
-  // qfrc_bias is size nv (base + joints)
-  const int nv_j = nv_ - 6;
-
-  Eigen::VectorXd tau(nv_j);
-  tau = Eigen::Map<Eigen::VectorXd>(d_->qfrc_inverse + 6, nv_j);
-
-  return tau;
+    d_->ctrl[index] = tau(i);
+  }
 }
 
 void MujocoSim::applyJointPositions(const Eigen::VectorXd& q_des)
@@ -201,37 +204,34 @@ void MujocoSim::applyJointPositions(const Eigen::VectorXd& q_des)
   applyTorques(tau);
 }
 
-void MujocoSim::applyJointVelocity(const Eigen::VectorXd& qp_des)
+void MujocoSim::applyJointPositionsV2(const std::vector<jointsIndex>& joints, const Eigen::VectorXd& q_des)
 {
-  kp_.setConstant(nu_, 1); //50
+  const double kp = 50.0;
+  const double kd = 5.0;
 
-  if (qp_des.size() != nu_) {
+  if (q_des.size() != joints.size()) {
     throw std::runtime_error(
       "applyJointPositions(): q_des dimension mismatch"
     );
   }
 
-  Eigen::VectorXd tau(nu_);
+  Eigen::VectorXd tau(joints.size());
   tau.setZero();
 
-  for (int i = 0; i < nu_; ++i) {
-    int joint_id = m_->actuator_trnid[2*i];   // actuator → joint
+  for (int i = 0; i < joints.size(); ++i) {
+    int index = static_cast<int>(joints[i]);
+
+    int joint_id = m_->actuator_trnid[2*index];   // actuator → joint
     int qpos_adr = m_->jnt_qposadr[joint_id];
     int qvel_adr = m_->jnt_dofadr[joint_id];
-    
+
     double q  = d_->qpos[qpos_adr];
     double dq = d_->qvel[qvel_adr];
 
-    double kp = kp_[i];   // your gains
-
-    tau[i] = kp * (qp_des[i] - dq);// - kd * dq;
-    if(i==12){
-      std::cout<<"Desired dq " << qp_des[i] << std::endl;
-      std::cout<<"Current dq " << dq << std::endl;
-      std::cout<<"Torque applied = " << tau(i) << std::endl;
-    }    
+    tau[i] = kp * (q_des[i] - q);// - kd * dq;
+ 
   }
-  applyTorques(tau);
+  applyTorquesV2(joints, tau);
 }
 
 void MujocoSim::getMujocoState(Eigen::VectorXd& q, Eigen::VectorXd& v)
@@ -248,5 +248,6 @@ Eigen::Vector3d MujocoSim::getCoM()
        d_->subtree_com[2];
   return com;
 }
+
 
     

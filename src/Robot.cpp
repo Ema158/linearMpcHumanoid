@@ -246,7 +246,7 @@ Eigen::VectorXd initialConfiguration(){
         0, 0, -0.5, 0.8, -0.3, 0, //left leg 12-17 
         1.6, 0, 0, 0, 0, //right arm 18-22
         -1.6, 0, 0, 0, 0, //left arm 23-27
-        0,0; // head 28-29
+        0.0,0; // head 28-29
     return q;
 }
 

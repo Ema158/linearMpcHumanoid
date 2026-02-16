@@ -99,8 +99,8 @@ private:
     
     //--------------------------------PD gains used in the reference accelerations-------------------------
     //PD for the joints
-    Eigen::MatrixXd KpJoints_ = 300*Eigen::MatrixXd::Identity(30, 30);
-    Eigen::MatrixXd KdJoints_ = 34*Eigen::MatrixXd::Identity(30, 30);
+    Eigen::MatrixXd KpJoints_ = 300*Eigen::MatrixXd::Identity(30, 30); //300
+    Eigen::MatrixXd KdJoints_ = 34*Eigen::MatrixXd::Identity(30, 30); //34
 
     //PD for spatial momentum
     Eigen::MatrixXd KpMom_ = 10*Eigen::MatrixXd::Identity(3, 3);

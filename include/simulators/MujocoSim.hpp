@@ -6,8 +6,41 @@
 // MuJoCo
 #include <mujoco/mujoco.h>
 
-// Your project types
 #include "linearMpcHumanoid/controller/controller.hpp"   // ControllerInput, ControllerOutput
+
+#include <unordered_map>
+#include <string>
+
+enum class jointsIndex{
+  HeadYaw = 0,
+  HeadPitch,
+
+  LHipYawPitch,
+  LHipRoll, 
+  LHipPitch, 
+  LKneePitch, 
+  LAnklePitch, 
+  LAnkleRoll,
+
+  RHipYawPitch, 
+  RHipRoll,
+  RHipPitch,
+  RKneePitch, 
+  RAnklePitch, 
+  RAnkleRoll,
+
+  LShoulderPitch,
+  LShoulderRoll,
+  LElbowRoll, 
+  LElbowYaw,
+  LWristYaw,
+
+  RShoulderPitch,
+  RShoulderRoll,
+  RElbowRoll,
+  RElbowYaw,
+  RWristYaw,
+};
 
 class MujocoSim {
 public:
@@ -27,12 +60,11 @@ public:
 
   // ---- controller interface ----
   ControllerInput getControllerInput() const;
-  void applyTorques(const Eigen::VectorXd& tau);
-  void applyJointPositions(const Eigen::VectorXd& qdes);
-  void applyJointVelocity(const Eigen::VectorXd& qp_des);
 
-  // ---- gravity compensation ----
-  Eigen::VectorXd computeGravityTorques();
+  void applyTorques(const Eigen::VectorXd& tau);
+  void applyTorquesV2(const std::vector<jointsIndex>& joints, const Eigen::VectorXd& tau);
+  void applyJointPositions(const Eigen::VectorXd& qdes);
+  void applyJointPositionsV2(const std::vector<jointsIndex>& joints, const Eigen::VectorXd& qdes);
 
   // ---- accessors ----
   int nq() const { return nq_; }
@@ -61,5 +93,8 @@ private:
 
   //-----PD gains for position controller----------------
   Eigen::VectorXd kp_, kd_, kv_;
+
+  //-----Vector of actuators names
+  std::unordered_map<std::string, int> actuatorMap_;
   
 };
