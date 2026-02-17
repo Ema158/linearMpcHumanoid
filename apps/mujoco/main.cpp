@@ -203,39 +203,6 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     clock.step(); 
 }
 
-Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, Controller& controller)
-{
-    const int n = robot.getNumJoints();
-
-    Eigen::VectorXd q = state.segment(0,n);
-    Eigen::VectorXd qD = state.segment(n,n);
-
-    ControllerInput in;
-    in.q    = state.segment(0,n);
-    in.dq   = state.segment(n,n);
-    in.time = t;
-
-    controller.standStep(in);
-
-    WBCOutput out = controller.WBC(t);
-
-    //The linear and angular velocities in the state vector are spatial velocities
-    //Before integrating linear velocity must change to classical definition
-    //Definition of 0v1: is the linear velocity of a point joined to body 1 that currently coincide with the origin of frame 0
-    //We transform this linear velocity with the classical lineal velocity transformation
-    qD.segment(0,3) += crossMatrix(qD.segment(3,3)) * q.segment(0,3); // 0v1 (classic) = 0v1(spatial) + 0w1 X 0p1
-    // Classical and spatial angular velocity are the same
-
-    //The rotation of the base is represented as Euler Angles
-    //We need to transform angular velocity to Euler Angles rate before integrating
-    qD.segment(3,3) =  matrixAngularVelToEulerDot(q.segment(3,3))*qD.segment(3,3); // 0eta1 = Omega*0w1
-
-    Eigen::VectorXd xp(2 * n);
-    xp.head(n) = qD;// q̇
-    xp.tail(n) = out.qpp;// q̈
-    return xp;
-}
-
 Eigen::MatrixXd relabelMujocoMatrix(Robot& robot)
 {
     Eigen::MatrixXd L = Eigen::MatrixXd::Zero(robot.getNumActualJoints(), robot.getNumActualJoints());
