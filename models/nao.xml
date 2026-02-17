@@ -1,6 +1,6 @@
 <mujoco model="NaoH25V50">
-  <!--<option timestep="0.01"/>-->
-  <option timestep="0.001" iterations="100" solver="Newton"/>
+  <option timestep="0.001"/>
+  <!--<option timestep="0.001" iterations="100" solver="Newton"/>-->
   <!--<option gravity="0 0 0"/>-->
   <default>
   <geom contype="0" conaffinity="0"

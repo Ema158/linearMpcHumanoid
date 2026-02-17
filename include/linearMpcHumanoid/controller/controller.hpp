@@ -103,8 +103,8 @@ private:
     Eigen::MatrixXd KdJoints_ = 34*Eigen::MatrixXd::Identity(30, 30); //34
 
     //PD for spatial momentum
-    Eigen::MatrixXd KpMom_ = 10*Eigen::MatrixXd::Identity(3, 3);
-    Eigen::MatrixXd KdMom_ = 6.32*Eigen::MatrixXd::Identity(3, 3);
+    Eigen::MatrixXd KpMom_ = 100*Eigen::MatrixXd::Identity(3, 3); //10
+    Eigen::MatrixXd KdMom_ = 20*Eigen::MatrixXd::Identity(3, 3); //6.32
 
     //Pd for feet position and orientation
     Eigen::MatrixXd KpFeet_ = 500*Eigen::MatrixXd::Identity(6, 6);
@@ -115,7 +115,7 @@ private:
     const Eigen::VectorXd PDFeetAcc(double t);
 
     //---------------------------------QP Weights for the WBC-----------------------------------------
-    double wCoML_ = 4000; //linear momentum weight 4000
+    double wCoML_ = 10000; //linear momentum weight 4000
     double wCoMK_ = 0; //angular momentum rate weight
     double wBasePos_ = 10; //base position
     double wBaseAng_ = 10; //base attitude

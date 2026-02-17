@@ -22,7 +22,7 @@ Eigen::MatrixXd fromMujocoFrameToControllerFrame(const Eigen::MatrixXd& R01,cons
 
 int main() {
   double simulationTime = 5;
-  double timeStep = 0.01;
+  double timeStep = 0.005;
 
   //Desired initial configuration for the simulation
   Robot nao;
@@ -188,28 +188,19 @@ void stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
     relabelJointsVel = (relabelMujocoMatrix(robot).transpose()) * (currentVel.segment(6,24));
     state.segment(n+6,24) = relabelJointsVel;
 
-    std::cout << "Mujoco x position = " << T01(0,3) << " RK4 position = " << state(0) << std::endl;
-    std::cout << "Mujoco y position = " << T01(1,3) << " RK4 position = " << state(1) << std::endl;
-    std::cout << "Mujoco z position = " << T01(2,3) << " RK4 position = " << state(2) << std::endl;  
+    std::cout << "t = " << clock.getTime() << std::endl;
+    std::cout << "Mujoco x com = " << sim.getCoM()(0) << " Controller x com = " << robot.getCoM()(0) << std::endl;
+    std::cout << "Mujoco y com = " << sim.getCoM()(1) << " Controller y com = " << robot.getCoM()(1) << std::endl;
+    std::cout << "Mujoco z com = " << sim.getCoM()(2) << " Controller z com = " << robot.getCoM()(2) << std::endl;  
+    std::cout<< std::endl;
 
-    state = rk4Step(
-        [&](const Eigen::VectorXd& x, double t)
-        {
-            return dynamics(x, t, robot, controller);
-        },
-    state,
-        clock.getTime(),
-        clock.getTimeStep()
-        );
-    
-    robot.updateState(state.segment(0,n));
-    //Update M,C, Jacobians, etc
-    dyn.computeAll(robot);
-    kin.computeAll(robot);
-    
-    robot.updateVelocityState(state.segment(n,n), dyn.getAG());
+    ControllerInput in;
+    in.q    = state.segment(0,n);
+    in.dq   = state.segment(n,n);
+    in.time = clock.getTime();
+    controller.standStep(in);
+
     clock.step(); 
-    std::cout<<std::endl;
 }
 
 Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& robot, Controller& controller)
