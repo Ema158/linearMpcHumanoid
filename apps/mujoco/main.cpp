@@ -12,15 +12,13 @@
 #include <iostream>
 #include <Eigen/Dense>
 
-Eigen::VectorXd stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim);
-
-Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& Robot, Controller& controller);
+Eigen::VectorXd updateState(const Robot& robot, Clock& clock, MujocoSim& sim);
 
 Eigen::MatrixXd relabelMujocoMatrix(const Robot& robot);
 
 Eigen::MatrixXd fromMujocoFrameToControllerFrame(const Eigen::MatrixXd& R01,const Eigen::Vector3d& p01);
 
-void updateController(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim);
+void updateController(const Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim);
 
 Eigen::VectorXd mujocoDataToControllerData(const Robot& robot, const Eigen::VectorXd& currentPos, const Eigen::VectorXd& currentVel);
 
@@ -46,7 +44,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.00, 0.00, 0.26 ;
+  com << 0.00, 0.02, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -92,7 +90,7 @@ int main() {
   return 0;
 }
 
-Eigen::VectorXd stand(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim) 
+Eigen::VectorXd updateState(const Robot& robot, Clock& clock, MujocoSim& sim) 
 {
     int n = robot.getNumJoints();
     Eigen::VectorXd state(2*n);
@@ -153,8 +151,9 @@ Eigen::MatrixXd fromMujocoFrameToControllerFrame(const Eigen::MatrixXd& R01,cons
     return T01Controller;
 }
 
-void updateController(Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
+void updateController(const Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim)
 {
+    static int step_counter = 0;
     int n = robot.getNumJoints();
     Eigen::VectorXd state(2*n);
 
@@ -189,27 +188,27 @@ void updateController(Robot& robot, Controller& controller, Clock& clock, Mujoco
 
     Eigen::VectorXd tau_test = Eigen::VectorXd::Zero(24);
     Eigen::VectorXd tau0(24);
-    for (int i=0;i<10;i++){
-        state = stand(robot,controller,clock,sim);
+
+    state = updateState(robot,clock,sim);
         
-        ControllerInput in;
-        in.q    = state.segment(0,n);
-        in.dq   = state.segment(n,n);
-        in.time = clock.getTime();
+    ControllerInput in;
+    in.q    = state.segment(0,n);
+    in.dq   = state.segment(n,n);
+    in.time = clock.getTime();
 
-        if (i==0){
-            controller.standStep(in);
-            clock.step(); 
-        }
-
-        controller.inverseDynamics(in);
-                   
-        tau0 = controller.getTorques();
-
-        tau_test = L*tau0; 
-     
-        sim.applyTorquesV2(joints, tau_test);
+    if (step_counter % 10 == 0) {
+        controller.standStep(in);
+        clock.step(); 
     }
+
+    controller.inverseDynamics(in);
+                   
+    tau0 = controller.getTorques();
+
+    tau_test = L*tau0; 
+     
+    sim.applyTorquesV2(joints, tau_test);
+    step_counter++;
 }
 
 Eigen::VectorXd mujocoDataToControllerData(const Robot& robot, const Eigen::VectorXd& currentPos, const Eigen::VectorXd& currentVel)
