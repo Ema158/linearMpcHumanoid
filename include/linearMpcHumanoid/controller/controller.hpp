@@ -43,8 +43,7 @@ struct ControllerOutput {
 struct WBCOutput
     {
         Eigen::VectorXd qpp;
-        Eigen::VectorXd tau;
-        Eigen::VectorXd f;   
+        Eigen::VectorXd f;  
 };
 
 class Controller {
@@ -62,9 +61,12 @@ public:
 
     const Eigen::VectorXd& getTorques(){return tau_;}
 
+    void inverseDynamics(const ControllerInput& in);
+
 private: 
     Eigen::VectorXd tau_; //24 dimention vector of torques
     Eigen::VectorXd state_; // 60 dimention vector of the current configuration and velocity
+    WBCOutput WBCout_; // qpp, reaction forces and torques
     
     Robot& robot_;
     Mpc3dLip& mpc_;

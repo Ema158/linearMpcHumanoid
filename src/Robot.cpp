@@ -266,8 +266,12 @@ void Robot::updateState(const Eigen::VectorXd& q_new){
     allVelocityMatrices(parentTransMatrix(T_));
 }
 
-void Robot::updateVelocityState(const Eigen::VectorXd& v_new, const Eigen::MatrixXd& AG){
+void Robot::updateVelocityState(const Eigen::VectorXd& v_new){
     v_ = v_new;
+}
+
+void Robot::updateCenterOfMassVelocity(const Eigen::MatrixXd& AG)
+{
     computeComMomentum(v_, AG);
 }
 

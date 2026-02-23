@@ -62,7 +62,9 @@ public:
     
     void updateState(const Eigen::VectorXd& q_new);
 
-    void updateVelocityState(const Eigen::VectorXd& v_new, const Eigen::MatrixXd& AG);
+    void updateVelocityState(const Eigen::VectorXd& v_new);
+
+    void updateCenterOfMassVelocity(const Eigen::MatrixXd& AG);
 
     std::vector<Eigen::Matrix4d> parentTransMatrix(const std::vector<Eigen::Matrix4d>& T);
 

@@ -51,17 +51,21 @@ void Controller::standStep(const ControllerInput& in)
 
     //Update state
     robot_.updateState(in.q);
+    robot_.updateVelocityState(in.dq);
 
     //Update M,C, Jacobians, etc
     dyn_.computeAll(robot_);
     kin_.computeAll(robot_);
     
-    robot_.updateVelocityState(in.dq, dyn_.getAG());
+    //Update center of mass velocity
+    robot_.updateCenterOfMassVelocity(dyn_.getAG());
+
     //Update CoM state for LIP model
     Eigen::Vector2d com_xy;
     Eigen::Vector2d comVel_xy;
     com_xy << robot_.getCoM()(0), robot_.getCoM()(1);
     comVel_xy << robot_.getComVel()(0), robot_.getComVel()(1);
+
     //Mpc lip model
     mpc_.compute(
         com_xy,
@@ -73,9 +77,9 @@ void Controller::standStep(const ControllerInput& in)
     //WBC
     state_.segment(0, n) = in.q;
     state_.segment(n, n) = in.dq;
-    WBCOutput out = WBC(in.time);
-
-    tau_ = out.tau;   
+    WBCOutput out = WBC(in.time); 
+    
+    WBCout_ = out;
 }
 
 WBCOutput Controller::WBC(double t)
@@ -134,23 +138,37 @@ WBCOutput Controller::WBC(double t)
     Eigen::VectorXd qpSolution = solveQP(H, g);
     
     forces = qpSolution.segment(numDesVariablesJoints_, numDesVariablesForces_);
-    Eigen::VectorXd generalizedForces(n);
-    generalizedForces = (dyn_.getM())*(qpSolution.segment(0,n)) + dyn_.getC() 
-                                        - (kin_.getFeetJacobian().transpose())*qpSolution.segment(n,numReactionForces_); //tau = M*qDD + C - J*F
-    torques = generalizedForces.segment(6,n-6);
-    
-    //x have the base spatial acceleration wrt to base frame, before integreated It has to be wrt world frame
-    Eigen::VectorXd accBaseWrtWrld = robot_.getX()[0].colPivHouseholderQr().solve(qpSolution.segment(0,6));
-    //Also the order of linear-angular base velocity is inverted in the generalized velocity vector
-    qDD.segment(0,3) = accBaseWrtWrld.segment(3,3);
-    qDD.segment(3,3) = accBaseWrtWrld.segment(0,3);
-    qDD.segment(6,robot_.getNumActualJoints()) = qpSolution.segment(6,robot_.getNumActualJoints());
+
+    qDD = qpSolution.segment(0, numDesVariablesJoints_);
 
     WBCOutput out;
     out.qpp = qDD;
     out.f = forces;
-    out.tau = torques;
     return out;
+}
+
+void Controller::inverseDynamics(const ControllerInput& in)
+{
+    int n = robot_.getNumJoints();
+    
+    //Update state
+    robot_.updateState(in.q);
+    robot_.updateVelocityState(in.dq);
+
+    //Update M,C, Jacobians, etc
+    dyn_.computeAll(robot_);
+    kin_.computeAll(robot_);
+
+    Eigen::VectorXd reactionForces = Eigen::VectorXd::Zero(numDesVariablesForces_);
+    Eigen::VectorXd qpp = Eigen::VectorXd::Zero(numDesVariablesJoints_);
+    reactionForces = WBCout_.f;
+    qpp = WBCout_.qpp;
+    
+    Eigen::VectorXd generalizedForces = Eigen::VectorXd::Zero(n);
+    generalizedForces = dyn_.getM()*qpp + dyn_.getC() 
+                                        - kin_.getFeetJacobian().transpose()*reactionForces; //tau = M*qDD + C - J*F
+                                        
+    tau_ = generalizedForces.segment(6,n-6);
 }
 
 void Controller::frictionConstraints(Eigen::MatrixXd& Aeq,
@@ -477,6 +495,8 @@ Eigen::VectorXd Controller::solveQP(
     qp_.getPrimalSolution(qpp.data()); 
     return qpp;
 }
+
+
 
 
 

@@ -266,8 +266,6 @@ Eigen::Vector3d Kinematics::rotMatrixToEulerAngles(
     return eta;
 }
 
-
-
 void Kinematics::computeAll(Robot& robot)
 {
     JFeet_ = feetJacobian(robot);

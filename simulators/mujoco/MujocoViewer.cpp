@@ -49,20 +49,14 @@ void MujocoViewer::initMujoco()
 
 void MujocoViewer::run(std::function<void()> control_cb, Clock& clock)
 {
-    
+    int step_count = 0;
     while (!glfwWindowShouldClose(window_) && 
             std::abs(clock.getTime() - clock.getSimulationTime()) > 0.01) {
-
-        int step_count = 0;
-        const int ctrl_decimation = 5; // 10 × 1 ms = 10 ms
         
-        if (control_cb && step_count % ctrl_decimation == 0) {
+        if (control_cb) {
             control_cb();     //  controller called here
         }
-        //if (control_cb) {
-        //    control_cb();     //  controller called here
-        //}
-        // Step simulation
+
         sim_.step();
         step_count++;
 
