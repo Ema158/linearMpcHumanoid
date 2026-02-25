@@ -1,5 +1,7 @@
 # Build directories
 build/
+build_debug/
+build_release/
 cmake-build-*/
 
 # Compiled objects

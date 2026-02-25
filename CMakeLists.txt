@@ -2,11 +2,17 @@ cmake_minimum_required(VERSION 3.16)
 
 project(whole_body_controller LANGUAGES CXX)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+        $<$<CONFIG:Release>:-O3>
+        $<$<CONFIG:Release>:-march=native>
+        $<$<CONFIG:Release>:-DNDEBUG>
+    )
+endif()
+
 function(enable_strict_warnings target)
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(${target} PRIVATE
-            -O1
-            -g
             -Wall
             -Wextra
             -Wpedantic
@@ -20,11 +26,11 @@ endfunction()
 function(enable_sanitizers target)
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         target_compile_options(${target} PRIVATE
-            -fsanitize=address,undefined
-            -fno-omit-frame-pointer
+            $<$<CONFIG:Debug>:-fsanitize=address,undefined>
+            $<$<CONFIG:Debug>:-fno-omit-frame-pointer>
         )
         target_link_options(${target} PRIVATE
-            -fsanitize=address,undefined
+            $<$<CONFIG:Debug>:-fsanitize=address,undefined>
         )
     endif()
 endfunction()

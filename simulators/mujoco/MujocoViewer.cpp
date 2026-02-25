@@ -39,7 +39,7 @@ void MujocoViewer::initMujoco()
     mjv_defaultCamera(&cam_);
     cam_.distance = 1.5; //1.5
     cam_.elevation = -20; //20
-    cam_.azimuth = 180; //150
+    cam_.azimuth = 150; //150
 
     mjv_defaultOption(&opt_);
 
@@ -49,16 +49,13 @@ void MujocoViewer::initMujoco()
 
 void MujocoViewer::run(std::function<void()> control_cb, Clock& clock)
 {
-    int step_count = 0;
     while (!glfwWindowShouldClose(window_) && 
             std::abs(clock.getTime() - clock.getSimulationTime()) > 0.01) {
         
-        if (control_cb) {
-            control_cb();     //  controller called here
+        for(int i = 0; i < 16; i++) { //16 simulation steps per frame rendering
+            if(control_cb) control_cb();
+            sim_.step();
         }
-
-        sim_.step();
-        step_count++;
 
         // Update scene
         mjv_updateScene(

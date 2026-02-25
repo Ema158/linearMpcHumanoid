@@ -105,8 +105,8 @@ private:
     Eigen::MatrixXd KdJoints_ = 34*Eigen::MatrixXd::Identity(30, 30); //34
 
     //PD for spatial momentum
-    Eigen::MatrixXd KpMom_ = 100*Eigen::MatrixXd::Identity(3, 3); //10
-    Eigen::MatrixXd KdMom_ = 20*Eigen::MatrixXd::Identity(3, 3); //6.32
+    Eigen::MatrixXd KpMom_ = 10*Eigen::MatrixXd::Identity(3, 3); //10
+    Eigen::MatrixXd KdMom_ = 6.32*Eigen::MatrixXd::Identity(3, 3); //6.32
 
     //Pd for feet position and orientation
     Eigen::MatrixXd KpFeet_ = 500*Eigen::MatrixXd::Identity(6, 6);

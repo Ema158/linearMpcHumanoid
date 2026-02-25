@@ -12,6 +12,8 @@
 #include <iostream>
 #include <Eigen/Dense>
 
+#include <chrono>
+
 Eigen::VectorXd updateState(const Robot& robot, Clock& clock, MujocoSim& sim);
 
 Eigen::MatrixXd relabelMujocoMatrix(const Robot& robot);
@@ -23,7 +25,7 @@ void updateController(const Robot& robot, Controller& controller, Clock& clock, 
 Eigen::VectorXd mujocoDataToControllerData(const Robot& robot, const Eigen::VectorXd& currentPos, const Eigen::VectorXd& currentVel);
 
 int main() {
-  double simulationTime = 10;
+  double simulationTime = 2;
   double timeStep = 0.01;
 
   //Desired initial configuration for the simulation
@@ -44,7 +46,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.00, 0.02, 0.26 ;
+  com << -0.02, 0.00, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -84,7 +86,14 @@ int main() {
   q_test = L*q0.segment(6,nao.getNumActualJoints());           
 
   viewer.run([&]() {
+        auto start = std::chrono::high_resolution_clock::now();
+
         updateController(nao, controller, clock, sim);
+
+        auto end = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double> elapsed = end - start;
+        std::cout << "Elapsed time: " << elapsed.count() << " seconds\n"; 
     }, clock);
  
   return 0;
@@ -188,9 +197,9 @@ void updateController(const Robot& robot, Controller& controller, Clock& clock, 
 
     Eigen::VectorXd tau_test = Eigen::VectorXd::Zero(24);
     Eigen::VectorXd tau0(24);
-
+  
     state = updateState(robot,clock,sim);
-        
+      
     ControllerInput in;
     in.q    = state.segment(0,n);
     in.dq   = state.segment(n,n);
@@ -200,9 +209,9 @@ void updateController(const Robot& robot, Controller& controller, Clock& clock, 
         controller.standStep(in);
         clock.step(); 
     }
-
+    
     controller.inverseDynamics(in);
-                   
+                  
     tau0 = controller.getTorques();
 
     tau_test = L*tau0; 
