@@ -6,7 +6,8 @@ Controller::Controller(Robot& robot,
     Mpc3dLip& mpc,
     ZMP& zmp,
     std::vector<Eigen::VectorXd>& rFCoeff,
-    std::vector<Eigen::VectorXd>& lFCoeff
+    std::vector<Eigen::VectorXd>& lFCoeff,
+    ContactState& contact
     )
     :
     robot_(robot),
@@ -14,6 +15,7 @@ Controller::Controller(Robot& robot,
     zmp_(zmp),
     rFCoeff_(rFCoeff),
     lFCoeff_(lFCoeff), 
+    contact_(contact),
     qp_(numDesVariables_,numConstraints_)
     
 {
@@ -94,7 +96,7 @@ WBCOutput Controller::WBC(double t)
     Eigen::VectorXd hGpRef = PDMomentumAcc();
     
     Eigen::VectorXd footAccRef = PDFeetAcc(t);
-    //std::cout<<footAccRef<<std::endl;
+
     Eigen::MatrixXd WJ = Eigen::MatrixXd::Zero(n, n); //Weight matrix of joints (including base)
     WJ.block(0,0,3,3) = wBasePos_*Eigen::Matrix3d::Identity(); // Weights base position
     WJ.block(3,3,3,3) = wBaseAng_*Eigen::Matrix3d::Identity(); // Weights base orientation
@@ -125,6 +127,7 @@ WBCOutput Controller::WBC(double t)
         = eps * Eigen::MatrixXd::Identity(
         numDesVariablesCoeff_,
         numDesVariablesCoeff_);
+
     //gradient construction
     Eigen::VectorXd g = Eigen::VectorXd::Zero(numDesVariables_);
     
@@ -485,7 +488,6 @@ Eigen::VectorXd Controller::solveQP(
     status = qp_.init(Hqp_.data(), g_.data(),
         A_.data(), nullptr, nullptr,
         lbA_.data(), ubA_.data(), nWSR);
-        //qp_initialized_ = true;
     
     if (status != qpOASES::SUCCESSFUL_RETURN)
     {

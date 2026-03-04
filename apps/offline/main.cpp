@@ -4,6 +4,7 @@
 #include "linearMpcHumanoid/controller/mpcLinearPendulum.hpp"
 #include "linearMpcHumanoid/general/Clock.hpp"
 #include "linearMpcHumanoid/general/Task.hpp"
+#include "linearMpcHumanoid/controller/ContactState.hpp"
 
 void stand(Robot& robot, Controller& controller, Clock& clock);
 
@@ -54,8 +55,10 @@ int main() {
     desPos << 0, 0.05, 0;
     stepHeight = 0;
     lFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
+
+    ContactState contact(Contact::Both);
     
-    Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff);
+    Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff,contact);
     
     //Compute the torques that balance the robot 
     stand(nao, controller, clock);

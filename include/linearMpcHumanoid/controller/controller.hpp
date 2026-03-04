@@ -1,11 +1,11 @@
 #pragma once
 #include <Eigen/Dense>
 #include <qpOASES.hpp>
-//#include <chrono>
 
 #include "linearMpcHumanoid/controller/mpcLinearPendulum.hpp"
 #include "linearMpcHumanoid/controller/Dynamics.hpp"
 #include "linearMpcHumanoid/controller/invKinematics.hpp"
+#include "linearMpcHumanoid/controller/ContactState.hpp"
 
 #include "linearMpcHumanoid/robotInfo/Robot.hpp"
 
@@ -53,7 +53,8 @@ public:
         Mpc3dLip& mpc,
         ZMP& zmp,
         std::vector<Eigen::VectorXd>& rFCoeff,
-        std::vector<Eigen::VectorXd>& lFCoeff);
+        std::vector<Eigen::VectorXd>& lFCoeff,
+        ContactState& contact);
 
     void standStep(const ControllerInput& in);
 
@@ -76,28 +77,31 @@ private:
     std::vector<Eigen::VectorXd> rFCoeff_;
     std::vector<Eigen::VectorXd> lFCoeff_;
 
+    ContactState contact_;
+
     Dynamics dyn_;
     Kinematics kin_;
     
     Eigen::MatrixXd frictionMatrix_ = Eigen::MatrixXd::Zero(3,4);
     double mu_ = 0.7; //friction coeff
     
-    int numDynamicsEqConstraints_ = 6;
-    int numFrictionEqConstraints_ = 12; //Both feet in contact with the ground
-    int numFrictionIneqConstraints_ = 16 + 16; //Both feet in contact with the ground
+    const int maxContacts_ = 2; // We create a qp with the maximum number of constraints and decision variables
+    int numDynamicsEqConstraints_ = 6; // 6 base dof
+    int numFrictionEqConstraints_ = 6*maxContacts_; //6 for each foot in contact with the ground
+    int numFrictionIneqConstraints_ = 16*maxContacts_; //16 for each foot in contact with the ground
 
     int numEqConstraints_ = numDynamicsEqConstraints_ + numFrictionEqConstraints_; 
     int numIneqConstraints_ = numFrictionIneqConstraints_; //ci>0, 16 for Right foot coef, 16 for left foot coef
     int numConstraints_ = numEqConstraints_ + numIneqConstraints_;
 
-    int numDesVariablesJoints_ = 30;
-    int numDesVariablesForces_ = 6 + 6;
-    int numDesVariablesCoeff_ = 16 + 16;
+    int numDesVariablesJoints_ = robot_.getNumJoints();
+    int numDesVariablesForces_ = 6*maxContacts_; //6 for each foot in contact with the ground
+    int numDesVariablesCoeff_ = 16*maxContacts_; //16 for each foot in contact with the ground
     int numDesVariables_ = numDesVariablesJoints_ + numDesVariablesForces_ + numDesVariablesCoeff_; //joints acc(including base) + spatial force RFoot + spatial force LFoot
                                                  //...+ RFoot Coef + LFoot Coef
     int numVertex_ = 4; //Vertices in each foot
     int numCoeff_ = 4; //Number of coeff at each vertex (number of sides of pyramid friction)
-    int numReactionForces_ = 12; // Number of reaction forces at current moment 12->DS 6->SS 0->noContact    
+    int numReactionForces_ = 6*maxContacts_; //6 for each foot in contact with the ground  
     
     //--------------------------------PD gains used in the reference accelerations-------------------------
     //PD for the joints

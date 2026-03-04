@@ -98,6 +98,7 @@ target_compile_definitions(controller_core PRIVATE
 add_library(mujoco_sim
     simulators/mujoco/MujocoSim.cpp
     simulators/mujoco/MujocoViewer.cpp
+    simulators/mujoco/MujocoDataToControllerData.cpp
 )
 
 target_include_directories(mujoco_sim PUBLIC
