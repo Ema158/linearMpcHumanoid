@@ -28,14 +28,14 @@ int main() {
   //Initial position of the feet for simulation
   Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);
   Rf(1) = -0.05;
-  Rf(2) = 0.00;
+  Rf(2) = 0.02;
   Eigen::VectorXd Lf = Eigen::VectorXd::Zero(6);
   Lf(1) = 0.05;
   Lf(2) = 0.00;
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << -0.02, 0.00, 0.26 ;
+  com << 0.00, 0.05, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -47,7 +47,7 @@ int main() {
   Mpc3dLip mpc(clock.getTimeStep(), timeHorizon, nao.getCoM()(2));
 
   //ZMP trajectory for a stand task (in the center of the support zone for all time)
-  ZMP zmp(Task::Stand,simulationTime,timeStep,SupportFoot::Double);
+  ZMP zmp(Task::Stand,simulationTime,timeStep,SupportFoot::Left);
   
   //Desired trajectory for the feet during simulation
   //No movement for stand
@@ -56,17 +56,17 @@ int main() {
   Eigen::Vector3d currentPos;
   Eigen::Vector3d desPos;
 
-  currentPos << 0, -0.05, 0;
-  desPos << 0, -0.05, 0;
-  double stepHeight = 0;
+  currentPos << 0, -0.05, 0.02;
+  desPos << 0, -0.05, 0.02;
+  double stepHeight = 0.02;
   rFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
 
-  currentPos << 0, 0.05, 0;
-  desPos << 0, 0.05, 0;
-  stepHeight = 0;
+  currentPos << 0, 0.05, 0.0;
+  desPos << 0, 0.05, 0.0;
+  stepHeight = 0.0;
   lFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
 
-  ContactState contact(Contact::Both);
+  ContactState contact(Contact::Left);
     
   Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff,contact);
   

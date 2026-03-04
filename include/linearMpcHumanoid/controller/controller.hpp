@@ -84,8 +84,11 @@ private:
     
     Eigen::MatrixXd frictionMatrix_ = Eigen::MatrixXd::Zero(3,4);
     double mu_ = 0.7; //friction coeff
+    int numVertex_ = 4; //Vertices in each foot
+    int numCoeff_ = 4; //Number of coeff at each vertex (number of sides of pyramid friction)
+    int numCoeffPerFoot_ = numVertex_ * numCoeff_;
+    const int maxContacts_ = 2; // We will create a qp with the maximum number of constraints and decision variables
     
-    const int maxContacts_ = 2; // We create a qp with the maximum number of constraints and decision variables
     int numDynamicsEqConstraints_ = 6; // 6 base dof
     int numFrictionEqConstraints_ = 6*maxContacts_; //6 for each foot in contact with the ground
     int numFrictionIneqConstraints_ = 16*maxContacts_; //16 for each foot in contact with the ground
@@ -99,8 +102,7 @@ private:
     int numDesVariablesCoeff_ = 16*maxContacts_; //16 for each foot in contact with the ground
     int numDesVariables_ = numDesVariablesJoints_ + numDesVariablesForces_ + numDesVariablesCoeff_; //joints acc(including base) + spatial force RFoot + spatial force LFoot
                                                  //...+ RFoot Coef + LFoot Coef
-    int numVertex_ = 4; //Vertices in each foot
-    int numCoeff_ = 4; //Number of coeff at each vertex (number of sides of pyramid friction)
+    
     int numReactionForces_ = 6*maxContacts_; //6 for each foot in contact with the ground  
     
     //--------------------------------PD gains used in the reference accelerations-------------------------

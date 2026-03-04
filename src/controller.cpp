@@ -452,9 +452,22 @@ Eigen::VectorXd Controller::solveQP(
 
     //Inequality constraints 
     //Friction inequality constraints
+    //Friction inequality bounds depends on type of contact
     A.block(numDynamicsEqConstraints_ + numFrictionEqConstraints_, 0, numIneqConstraints_, numDesVariables_) = Aineq;
-    lbA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_) = bineq;
-    ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_).setConstant(qpOASES::INFTY); //positive infinite
+    if(contact_.get() == Contact::Both){
+        lbA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_).setZero();
+        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_).setConstant(qpOASES::INFTY); //positive infinite
+    }
+    else if (contact_.get() == Contact::Right){
+        lbA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_).setZero();
+        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numCoeffPerFoot_).setConstant(qpOASES::INFTY); //positive infinite
+        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_ + numCoeffPerFoot_, numCoeffPerFoot_).setZero(); 
+    }
+    else if (contact_.get() == Contact::Left){
+        lbA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_).setZero();
+        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numCoeffPerFoot_).setZero(); //positive infinite
+        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_ + numCoeffPerFoot_, numCoeffPerFoot_).setConstant(qpOASES::INFTY); 
+    }
 
     int nWSR = 500;
     qpOASES::returnValue status;
@@ -464,7 +477,6 @@ Eigen::VectorXd Controller::solveQP(
     g_   = g;
     lbA_ = lbA;
     ubA_ = ubA;
-    //qpOASES::SQProblem qp2(numDesVariables_, numConstraints_);
 
     auto check = [](const char* name, const Eigen::MatrixXd& M) {
     if (!M.allFinite()) {
@@ -489,10 +501,8 @@ Eigen::VectorXd Controller::solveQP(
         A_.data(), nullptr, nullptr,
         lbA_.data(), ubA_.data(), nWSR);
     
-    if (status != qpOASES::SUCCESSFUL_RETURN)
-    {
-    std::cerr << "QP failed, status = " << status << std::endl;
-    // optionally return previous solution or zero
+    if (status != qpOASES::SUCCESSFUL_RETURN){
+        std::cerr << "QP failed, status = " << status << std::endl;
     }
     qp_.getPrimalSolution(qpp.data()); 
     return qpp;
