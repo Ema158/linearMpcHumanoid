@@ -10,6 +10,8 @@ class Clock{
         
         void step() {t_ += dt_;}
 
+        void reset() {t_ = 0;}
+
     private:
         double t_ = 0;
         double dt_;

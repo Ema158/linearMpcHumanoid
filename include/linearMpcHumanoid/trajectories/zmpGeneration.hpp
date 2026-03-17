@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
 #include "linearMpcHumanoid/general/Task.hpp"
+#include "linearMpcHumanoid/controller/ContactState.hpp"
 
 class ZMP{
 public:
@@ -10,30 +11,36 @@ public:
         const Task task,
         const double simulationTime,
         const double timeStep,
-        const SupportFoot supportFoot); //Regulation DS or SS
+        const Contact supportFoot); //Regulation DS or SS
     
     ZMP(
         const Task task,
-        const int numSteps,
-        const double timePerStep,
-        const double simulationTime); //Walk
+        const double timeStep,
+        const GaitParameters gaitParameters,
+        const Contact supportFoot); //Walk
     
     void stanceZMP(); //ZMP reference for a standing motion 
     void walkZMP(); //ZMP reference for a walking motion
+    void updateWalkZMP();
 
     const Eigen::VectorXd getZmpXRef() const {return zmpXRef_;}
     const Eigen::VectorXd getZmpYRef() const {return zmpYRef_;}
+
+    void setContact(const Contact& newContact){contact_ = newContact;};
+    void setGaitParameters(const GaitParameters& newGaitParameters){gaitParameters_ = newGaitParameters;};
 private:
     Eigen::VectorXd zmpXRef_;
     Eigen::VectorXd zmpYRef_;
-    Eigen::VectorXd zmpXMax_; //Constraints are not neccesary since the WBC guaranteees ZMP inside support polygon
-    Eigen::VectorXd zmpYMax_; //Constraints are not neccesary since the WBC guaranteees ZMP inside support polygon
-    Eigen::VectorXd zmpXMin_; //Constraints are not neccesary since the WBC guaranteees ZMP inside support polygon
-    Eigen::VectorXd zmpYMin_; //Constraints are not neccesary since the WBC guaranteees ZMP inside support polygon
+
     double simulationTime_ = 1;
     double timeStep_ = 0.01;
-    SupportFoot supportFoot_ = SupportFoot::Double;
+
+    Contact contact_ = Contact::Both;
     Task task_ = Task::Stand;
-    int numSteps_ = 1;
-    double timePerStep_ = 0.5;
+
+    int samplesPerStep_;
+    int samplesDS_;
+    int samples_;
+
+    GaitParameters gaitParameters_;
 };

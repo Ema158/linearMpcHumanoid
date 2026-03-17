@@ -13,13 +13,14 @@ Eigen::VectorXd dynamics(const Eigen::VectorXd& state, double t, Robot& Robot, C
 int main() {
     double simulationTime = 5;
     double timeStep = 0.01;
+    ContactState contact(Contact::Right);
 
     Robot nao;
     Kinematics ik;
     Clock clock(timeStep,simulationTime);
 
     //ZMP trajectory for a stand task (in the center of the support zone for all time)
-    ZMP zmp(Task::Stand,simulationTime,timeStep,SupportFoot::Double);
+    ZMP zmp(Task::Stand,simulationTime,timeStep,contact.get());
     
     //Initial position of the feet for simulation
     Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);
@@ -56,8 +57,6 @@ int main() {
     stepHeight = 0;
     lFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
 
-    ContactState contact(Contact::Both);
-    
     Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff,contact);
     
     //Compute the torques that balance the robot 

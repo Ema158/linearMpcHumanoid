@@ -172,3 +172,98 @@ void updateController(const Robot& robot, Controller& controller, Clock& clock, 
     sim.applyTorquesV2(joints, tau_test);
     step_counter++;
 }
+
+void updateWalkController(const Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim, ZMP& zmp)
+{
+    static int step_counter = 0;
+    int n = robot.getNumJoints();
+    Eigen::VectorXd state(2*n);
+
+    Eigen::MatrixXd L = relabelMujocoMatrix(robot);
+
+    std::vector<jointsIndex> joints = {
+            jointsIndex::HeadYaw,
+            jointsIndex::HeadPitch,
+            jointsIndex::LHipYawPitch,
+            jointsIndex::LHipRoll,
+            jointsIndex::LHipPitch,
+            jointsIndex::LKneePitch,
+            jointsIndex::LAnklePitch,
+            jointsIndex::LAnkleRoll,
+            jointsIndex::RHipYawPitch,
+            jointsIndex::RHipRoll,
+            jointsIndex::RHipPitch,
+            jointsIndex::RKneePitch,
+            jointsIndex::RAnklePitch,
+            jointsIndex::RAnkleRoll,
+            jointsIndex::LShoulderPitch,
+            jointsIndex::LShoulderRoll,
+            jointsIndex::LElbowYaw,
+            jointsIndex::LElbowRoll,
+            jointsIndex::LWristYaw,
+            jointsIndex::RShoulderPitch,
+            jointsIndex::RShoulderRoll,
+            jointsIndex::RElbowYaw,
+            jointsIndex::RElbowRoll,
+            jointsIndex::RWristYaw,
+        };
+
+    Eigen::VectorXd tau_test = Eigen::VectorXd::Zero(24);
+    Eigen::VectorXd tau0(24);
+  
+    state = updateState(robot,clock,sim);
+      
+    ControllerInput in;
+    in.q    = state.segment(0,n);
+    in.dq   = state.segment(n,n);
+    in.time = clock.getTime();
+
+    if (step_counter % 10 == 0) {
+        controller.standStep(in);
+        clock.step(); 
+    }
+    
+    controller.inverseDynamics(in);
+                  
+    tau0 = controller.getTorques();
+
+    tau_test = L*tau0; 
+     
+    sim.applyTorquesV2(joints, tau_test);
+    step_counter++;
+
+    GaitParameters gaitParameters;
+    if (controller.getContact().get() == Contact::Both && clock.getTime() >= 0.39){
+        clock.reset();       
+        gaitParameters.currentYPos = -0.05;
+        gaitParameters.futureYPos = 0.05;
+        controller.setContact(Contact::Right);
+        zmp.setContact(Contact::Right); //Walk
+        zmp.setGaitParameters(gaitParameters);
+        zmp.updateWalkZMP();
+        controller.setZMP(zmp);
+    }
+
+    if (controller.getContact().get() == Contact::Right && clock.getTime() >= 0.49){
+        clock.reset();
+        gaitParameters.currentYPos = 0.05;        
+        gaitParameters.futureYPos = -0.05;
+        controller.setContact(Contact::Left);
+        zmp.setContact(Contact::Left); //Walk
+        zmp.setGaitParameters(gaitParameters);
+        zmp.updateWalkZMP();
+        controller.setZMP(zmp);
+    }
+
+        if (controller.getContact().get() == Contact::Left && clock.getTime() >= 0.49){
+        clock.reset();
+        gaitParameters.currentYPos = -0.05;        
+        gaitParameters.futureYPos =  0.05;
+        controller.setContact(Contact::Right);
+        zmp.setContact(Contact::Right); //Walk
+        zmp.setGaitParameters(gaitParameters);
+        zmp.updateWalkZMP();
+        controller.setZMP(zmp);
+    }
+
+}

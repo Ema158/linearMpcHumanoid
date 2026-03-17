@@ -17,8 +17,10 @@
 #include <chrono>
 
 int main() {
-  double simulationTime = 2;
+  double simulationTime = 0.5;
   double timeStep = 0.01;
+  ContactState contact(Contact::Both);
+  Task task = Task::Walk;
 
   //Desired initial configuration for the simulation
   Robot nao;
@@ -28,14 +30,14 @@ int main() {
   //Initial position of the feet for simulation
   Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);
   Rf(1) = -0.05;
-  Rf(2) = 0.02;
+  Rf(2) = 0.00;
   Eigen::VectorXd Lf = Eigen::VectorXd::Zero(6);
   Lf(1) = 0.05;
   Lf(2) = 0.00;
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.00, 0.05, 0.26 ;
+  com << 0.00, 0.00, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -47,7 +49,10 @@ int main() {
   Mpc3dLip mpc(clock.getTimeStep(), timeHorizon, nao.getCoM()(2));
 
   //ZMP trajectory for a stand task (in the center of the support zone for all time)
-  ZMP zmp(Task::Stand,simulationTime,timeStep,SupportFoot::Left);
+  //ZMP zmp(task,simulationTime,timeStep,contact.get()); //Balance
+  
+  GaitParameters gaitParameters;
+  ZMP zmp(task, timeStep, gaitParameters, contact.get()); //Walk
   
   //Desired trajectory for the feet during simulation
   //No movement for stand
@@ -56,17 +61,15 @@ int main() {
   Eigen::Vector3d currentPos;
   Eigen::Vector3d desPos;
 
-  currentPos << 0, -0.05, 0.02;
-  desPos << 0, -0.05, 0.02;
-  double stepHeight = 0.02;
+  currentPos << Rf(0), Rf(1), Rf(2);
+  desPos << 0, -0.05, 0.00;
+  double stepHeight = 0.00;
   rFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
 
-  currentPos << 0, 0.05, 0.0;
+  currentPos << Lf(0), Lf(1), Lf(2);
   desPos << 0, 0.05, 0.0;
   stepHeight = 0.0;
   lFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
-
-  ContactState contact(Contact::Left);
     
   Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff,contact);
   
@@ -77,7 +80,8 @@ int main() {
   viewer.run([&]() {
         auto start = std::chrono::high_resolution_clock::now();
 
-        updateController(nao, controller, clock, sim);
+        //updateController(nao, controller, clock, sim);
+        updateWalkController(nao, controller, clock, sim, zmp);
 
         auto end = std::chrono::high_resolution_clock::now();
 

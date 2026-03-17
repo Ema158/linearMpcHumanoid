@@ -465,7 +465,7 @@ Eigen::VectorXd Controller::solveQP(
     }
     else if (contact_.get() == Contact::Left){
         lbA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numIneqConstraints_).setZero();
-        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numCoeffPerFoot_).setZero(); //positive infinite
+        ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_, numCoeffPerFoot_).setZero(); 
         ubA.segment(numDynamicsEqConstraints_ + numFrictionEqConstraints_ + numCoeffPerFoot_, numCoeffPerFoot_).setConstant(qpOASES::INFTY); 
     }
 

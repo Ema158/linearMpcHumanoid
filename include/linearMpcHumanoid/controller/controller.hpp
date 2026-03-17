@@ -64,6 +64,12 @@ public:
 
     void inverseDynamics(const ControllerInput& in);
 
+    void setZMP(const ZMP& newZMP){zmp_ = newZMP;};
+
+    void setContact(const Contact& newContact){contact_ = newContact;};
+
+    ContactState& getContact(){return contact_;}
+
 private: 
     Eigen::VectorXd tau_; //24 dimention vector of torques
     Eigen::VectorXd state_; // 60 dimention vector of the current configuration and velocity

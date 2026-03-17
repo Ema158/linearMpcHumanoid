@@ -19,3 +19,5 @@ Eigen::VectorXd updateState(const Robot& robot, Clock& clock, MujocoSim& sim);
 
 void updateController(const Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim);
 
+void updateWalkController(const Robot& robot, Controller& controller, Clock& clock, MujocoSim& sim, ZMP& zmp);
+

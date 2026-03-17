@@ -16,6 +16,7 @@
 class Robot{
 public:
     Robot();
+    
     const std::vector<int> parentFrame() const; // vector that contains the parent frame p(i) of each frame i
     
     const std::vector<int> actuatedFrames() const; //vector that contains a zero if the frame is not actuated and the number of the joint if it is actuated

@@ -6,8 +6,12 @@ enum class Task{
     Jump
 };
 
-enum class SupportFoot {
-    Right,
-    Left,
-    Double
+struct GaitParameters{
+    int numSteps = 1;
+    double timePerStep = 0.5;
+    double currentXPos = 0;
+    double currentYPos = 0;
+    double futureXPos = 0.00;
+    double futureYPos = -0.05;
 };
+    
