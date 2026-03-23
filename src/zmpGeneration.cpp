@@ -13,26 +13,26 @@ ZMP::ZMP(
     const Task task,
     const double simulationTime,
     const double timeStep,
-    const Contact contact_) 
+    const Contact contact) 
     :
     simulationTime_(simulationTime),
     timeStep_(timeStep),
-    contact_(contact_)
+    contact_(contact)
 {
-    stanceZMP();
     samples_ = static_cast<int>((simulationTime_ + 0.5) / timeStep_);
+    stanceZMP(); 
 }
 
 ZMP::ZMP(
     const Task task,
     const double timeStep,
     const GaitParameters gaitParameters,
-    const Contact contact_)
+    const Contact contact)
     :
     task_(task),
     timeStep_(timeStep),
     gaitParameters_(gaitParameters),
-    contact_(contact_)
+    contact_(contact)
 {
     samplesPerStep_ = static_cast<int>(gaitParameters_.timePerStep / timeStep_);
     samplesDS_ = static_cast<int>(0.2*samplesPerStep_);

@@ -17,7 +17,7 @@
 #include <chrono>
 
 int main() {
-  double simulationTime = 0.5;
+  double simulationTime = 2;
   double timeStep = 0.01;
   ContactState contact(Contact::Both);
   Task task = Task::Walk;
@@ -37,7 +37,7 @@ int main() {
     
   //Initial position of the center of mass for simulation
   Eigen::Vector3d com = Eigen::Vector3d::Zero();
-  com << 0.00, 0.00, 0.26 ;
+  com << 0.00, 0.0, 0.26 ;
     
   //Inverse kinematics to compute the initial joint configuration
   Eigen::VectorXd desOp = ik.desiredOperationalState(nao,Rf,Lf,com);
@@ -68,7 +68,7 @@ int main() {
 
   currentPos << Lf(0), Lf(1), Lf(2);
   desPos << 0, 0.05, 0.0;
-  stepHeight = 0.0;
+  stepHeight = 0.00;
   lFCoeff = footCoeffTrajectory(currentPos, desPos, stepHeight, simulationTime);
     
   Controller controller(nao,mpc,zmp,rFCoeff,lFCoeff,contact);

@@ -13,5 +13,6 @@ struct GaitParameters{
     double currentYPos = 0;
     double futureXPos = 0.00;
     double futureYPos = -0.05;
+    double stepHeight = 0.02;
 };
     

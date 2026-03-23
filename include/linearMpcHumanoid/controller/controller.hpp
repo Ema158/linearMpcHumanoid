@@ -68,6 +68,16 @@ public:
 
     void setContact(const Contact& newContact){contact_ = newContact;};
 
+    void setRightFootCoeff(const std::vector<Eigen::VectorXd>& new_rFCoeff) {rFCoeff_ = new_rFCoeff;}
+
+    void setLeftFootCoeff(const std::vector<Eigen::VectorXd>& new_lFCoeff) {lFCoeff_ = new_lFCoeff;}
+
+    void setFootCoeff(const std::vector<Eigen::VectorXd>& new_rFCoeff, const std::vector<Eigen::VectorXd>& new_lFCoeff)
+    {
+        rFCoeff_ = new_rFCoeff;
+        lFCoeff_ = new_lFCoeff;
+    }
+
     ContactState& getContact(){return contact_;}
 
 private: 
@@ -129,13 +139,13 @@ private:
     const Eigen::VectorXd PDFeetAcc(double t);
 
     //---------------------------------QP Weights for the WBC-----------------------------------------
-    double wCoML_ = 10000; //linear momentum weight 4000
+    double wCoML_ = 4000; //linear momentum weight 4000
     double wCoMK_ = 0; //angular momentum rate weight
     double wBasePos_ = 10; //base position
     double wBaseAng_ = 10; //base attitude
     double wJoints_ = 1; //rotational joints
     double wForce_ = 1; //reaction forces
-    double wFoot_ = 100000; //position and orientation of both feet 100000
+    double wFoot_ = 10000; //position and orientation of both feet 100000
 
     qpOASES::SQProblem qp_;
     bool qp_initialized_ = false;
