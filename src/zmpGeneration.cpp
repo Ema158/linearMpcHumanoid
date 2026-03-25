@@ -59,6 +59,10 @@ void ZMP::updateWalkZMP()
     else if(contact_ == Contact::Right || contact_ == Contact::Left){
         zmpYRef_.segment(0,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.currentYPos);
         zmpYRef_.segment(samplesPerStep_,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.futureYPos);
+        
+        zmpXRef_.segment(0,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.currentXPos);
+        zmpXRef_.segment(samplesPerStep_,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.futureXPos);
+
     }   
     
 }

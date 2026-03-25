@@ -188,54 +188,88 @@ void updateWalkController(const Robot& robot, Controller& controller, Clock& clo
     
     if (controller.getContact().get() == Contact::Both && clock.getTime() >= 0.39){
         clock.reset();       
-        gaitParameters.currentYPos = -0.05;
+        gaitParameters.currentYPos = robot.getT()[7](1,3);
         gaitParameters.futureYPos = 0.05;
+        gaitParameters.currentXPos = robot.getT()[7](0,3);
+        gaitParameters.futureXPos = robot.getT()[7](0,3) + gaitParameters.stepLength;
         controller.setContact(Contact::Right);
         zmp.setContact(Contact::Right); //Walk
         zmp.setGaitParameters(gaitParameters);
         zmp.updateWalkZMP();
         controller.setZMP(zmp);
+
+        currentPos << robot.getT()[7](0,3), robot.getT()[7](1,3), 0.00;
+        desPos << robot.getT()[7](0,3), robot.getT()[7](1,3), 0.00;
+
+        //currentPos << 0, -0.05, 0.00;
+        //desPos << 0, -0.05, 0.00;
+        rFCoeff = footCoeffTrajectory(currentPos, desPos, 0.0, gaitParameters.timePerStep);
+
+        currentPos << robot.getT()[14](0,3), robot.getT()[14](1,3), 0.0;
+        desPos << robot.getT()[14](0,3) + gaitParameters.stepLength, robot.getT()[14](1,3), 0.0;
+
+        //currentPos << 0, 0.05, 0.0;
+        //desPos << 0, 0.05, 0.0;
+        lFCoeff = footCoeffTrajectory(currentPos, desPos, gaitParameters.stepHeight, gaitParameters.timePerStep);
+
+        controller.setFootCoeff(rFCoeff, lFCoeff);
     }
 
     // Right Support ended
     if (controller.getContact().get() == Contact::Right && clock.getTime() >= 0.49){
         clock.reset();
-        gaitParameters.currentYPos = 0.05;        
+        gaitParameters.currentYPos = robot.getT()[14](1,3);        
         gaitParameters.futureYPos = -0.05;
+        gaitParameters.currentXPos = robot.getT()[14](0,3);
+        gaitParameters.futureXPos = robot.getT()[14](0,3) + gaitParameters.stepLength;
         controller.setContact(Contact::Left);
         zmp.setContact(Contact::Left); //Walk
         zmp.setGaitParameters(gaitParameters);
         zmp.updateWalkZMP();
         controller.setZMP(zmp);
 
-        currentPos << 0, -0.05, 0.00;
-        desPos << 0, -0.05, 0.00;
+        currentPos << robot.getT()[7](0,3), robot.getT()[7](1,3), 0.00;
+        desPos << robot.getT()[7](0,3) + 2*gaitParameters.stepLength, robot.getT()[14](1,3) - gaitParameters.stepWidth, 0.00;
+
+        //currentPos << 0, -0.05, 0.00;
+        //desPos << 0, -0.05, 0.00;
         rFCoeff = footCoeffTrajectory(currentPos, desPos, gaitParameters.stepHeight, gaitParameters.timePerStep);
 
-        currentPos << 0, 0.05, 0.0;
-        desPos << 0, 0.05, 0.0;
+        currentPos << robot.getT()[14](0,3), robot.getT()[14](1,3), 0.0;
+        desPos << robot.getT()[14](0,3), robot.getT()[14](1,3), 0.0;
+
+        //currentPos << 0, 0.05, 0.0;
+        //desPos << 0, 0.05, 0.0;
         lFCoeff = footCoeffTrajectory(currentPos, desPos, 0.0, gaitParameters.timePerStep);
 
         controller.setFootCoeff(rFCoeff, lFCoeff);
     }
 
-    // Right Support ended
+    // Left Support ended
     if (controller.getContact().get() == Contact::Left && clock.getTime() >= 0.49){
         clock.reset();
-        gaitParameters.currentYPos = -0.05;        
+        gaitParameters.currentYPos = robot.getT()[7](1,3);        
         gaitParameters.futureYPos =  0.05;
+        gaitParameters.currentXPos = robot.getT()[7](0,3);
+        gaitParameters.futureXPos = robot.getT()[14](0,3) + gaitParameters.stepLength;
         controller.setContact(Contact::Right);
         zmp.setContact(Contact::Right); //Walk
         zmp.setGaitParameters(gaitParameters);
         zmp.updateWalkZMP();
         controller.setZMP(zmp);
 
-        currentPos << 0, -0.05, 0.00;
-        desPos << 0, -0.05, 0.00;
+        currentPos << robot.getT()[7](0,3), robot.getT()[7](1,3), 0.00;
+        desPos << robot.getT()[7](0,3), robot.getT()[7](1,3), 0.00;
+
+        //currentPos << 0, -0.05, 0.00;
+        //desPos << 0, -0.05, 0.00;
         rFCoeff = footCoeffTrajectory(currentPos, desPos, 0.0, gaitParameters.timePerStep);
 
-        currentPos << 0, 0.05, 0.0;
-        desPos << 0, 0.05, 0.0;
+        currentPos << robot.getT()[14](0,3), robot.getT()[14](1,3), 0.0;
+        desPos << robot.getT()[14](0,3) + 2*gaitParameters.stepLength, robot.getT()[7](1,3) + gaitParameters.stepWidth, 0.0;
+
+        //currentPos << 0, 0.05, 0.0;
+        //desPos << 0, 0.05, 0.0;
         lFCoeff = footCoeffTrajectory(currentPos, desPos, gaitParameters.stepHeight, gaitParameters.timePerStep);
 
         controller.setFootCoeff(rFCoeff, lFCoeff);

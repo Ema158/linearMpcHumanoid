@@ -17,7 +17,7 @@
 #include <chrono>
 
 int main() {
-  double simulationTime = 2; // Only used in balance
+  double simulationTime = 20; // Only used in balance
   double timeStep = 0.01;
   ContactState contact(Contact::Both);
   Task task = Task::Walk;
