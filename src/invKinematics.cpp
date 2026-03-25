@@ -97,8 +97,6 @@ Eigen::MatrixXd Kinematics::feetJacobian(
     JFeet.block(0,0,6,dof) = JacR;
     JFeet.block(6,0,6,dof) = JacL;
 
-    //std::cout<<JFeet.block(0,0,6,12)<<std::endl<<std::endl;
-    //std::cout<<JFeet.block(6,0,6,12)<<std::endl<<std::endl;
     return JFeet;
 }
 

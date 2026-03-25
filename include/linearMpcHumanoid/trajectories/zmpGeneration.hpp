@@ -5,22 +5,12 @@
 
 class ZMP{
 public:
-    ZMP(const Task task); //Regulation DS
 
-    ZMP(
-        const Task task,
-        const double simulationTime,
-        const double timeStep,
-        const Contact supportFoot); //Regulation DS or SS
+    ZMP(const double timeStep,
+        const Contact& supportFoot); 
     
-    ZMP(
-        const Task task,
-        const double timeStep,
-        const GaitParameters gaitParameters,
-        const Contact supportFoot); //Walk
-    
-    void stanceZMP(); //ZMP reference for a standing motion 
-    void walkZMP(); //ZMP reference for a walking motion
+    void stanceZMP(const double simulationTime); //ZMP reference for a standing motion 
+    void walkZMP(const GaitParameters& gaitParameters); //ZMP reference for a walking motion
     void updateWalkZMP();
 
     const Eigen::VectorXd getZmpXRef() const {return zmpXRef_;}
@@ -36,7 +26,6 @@ private:
     double timeStep_ = 0.01;
 
     Contact contact_ = Contact::Both;
-    Task task_ = Task::Stand;
 
     int samplesPerStep_;
     int samplesDS_;

@@ -185,6 +185,7 @@ void updateWalkController(const Robot& robot, Controller& controller, Clock& clo
     Eigen::Vector3d desPos;
 
     // Initial phase of DS ended
+    
     if (controller.getContact().get() == Contact::Both && clock.getTime() >= 0.39){
         clock.reset();       
         gaitParameters.currentYPos = -0.05;

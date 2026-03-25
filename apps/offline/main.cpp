@@ -20,7 +20,8 @@ int main() {
     Clock clock(timeStep,simulationTime);
 
     //ZMP trajectory for a stand task (in the center of the support zone for all time)
-    ZMP zmp(Task::Stand,simulationTime,timeStep,contact.get());
+    ZMP zmp(timeStep,contact.get());
+    zmp.stanceZMP(simulationTime);
     
     //Initial position of the feet for simulation
     Eigen::VectorXd Rf = Eigen::VectorXd::Zero(6);

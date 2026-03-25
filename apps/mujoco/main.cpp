@@ -17,7 +17,7 @@
 #include <chrono>
 
 int main() {
-  double simulationTime = 2;
+  double simulationTime = 2; // Only used in balance
   double timeStep = 0.01;
   ContactState contact(Contact::Both);
   Task task = Task::Walk;
@@ -48,11 +48,14 @@ int main() {
   double timeHorizon = 0.5;
   Mpc3dLip mpc(clock.getTimeStep(), timeHorizon, nao.getCoM()(2));
 
-  //ZMP trajectory for a stand task (in the center of the support zone for all time)
-  //ZMP zmp(task,simulationTime,timeStep,contact.get()); //Balance
+  GaitParameters gaitParameters;// Only used in walking
   
-  GaitParameters gaitParameters;
-  ZMP zmp(task, timeStep, gaitParameters, contact.get()); //Walk
+  ZMP zmp(timeStep, contact.get());
+
+  if (task==Task::Stand)
+    zmp.stanceZMP(simulationTime); //Balance
+  else if (task==Task::Walk)
+    zmp.walkZMP(gaitParameters); //Walk
   
   //Desired trajectory for the feet during simulation
   //No movement for stand
@@ -80,8 +83,10 @@ int main() {
   viewer.run([&]() {
         auto start = std::chrono::high_resolution_clock::now();
 
-        //updateController(nao, controller, clock, sim);
-        updateWalkController(nao, controller, clock, sim, zmp);
+        if (task==Task::Stand)
+          updateController(nao, controller, clock, sim);
+        else if (task==Task::Walk)
+          updateWalkController(nao, controller, clock, sim, zmp);
 
         auto end = std::chrono::high_resolution_clock::now();
 

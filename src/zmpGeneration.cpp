@@ -2,47 +2,18 @@
 #include <iostream>
 
 ZMP::ZMP(
-    const Task task)
-    :
-    task_(task)
-{
-    stanceZMP();
-}
-
-ZMP::ZMP(
-    const Task task,
-    const double simulationTime,
     const double timeStep,
-    const Contact contact) 
+    const Contact& contact) 
     :
-    simulationTime_(simulationTime),
     timeStep_(timeStep),
     contact_(contact)
 {
-    samples_ = static_cast<int>((simulationTime_ + 0.5) / timeStep_);
-    stanceZMP(); 
+     
 }
 
-ZMP::ZMP(
-    const Task task,
-    const double timeStep,
-    const GaitParameters gaitParameters,
-    const Contact contact)
-    :
-    task_(task),
-    timeStep_(timeStep),
-    gaitParameters_(gaitParameters),
-    contact_(contact)
+void ZMP::stanceZMP(double simulationTime)
 {
-    samplesPerStep_ = static_cast<int>(gaitParameters_.timePerStep / timeStep_);
-    samplesDS_ = static_cast<int>(0.2*samplesPerStep_);
-    samples_ = 2*samplesPerStep_; //A reference of two steps is generated
-
-    walkZMP();
-}
-
-void ZMP::stanceZMP()
-{
+    samples_ = static_cast<int>((simulationTime + 0.5) / timeStep_);
     zmpXRef_.resize(samples_);
     zmpYRef_.resize(samples_);
 
@@ -62,8 +33,12 @@ void ZMP::stanceZMP()
 
 }
 
-void ZMP::walkZMP()
+void ZMP::walkZMP(const GaitParameters& gaitParameters)
 {
+    samplesPerStep_ = static_cast<int>(gaitParameters.timePerStep / timeStep_);
+    samplesDS_ = static_cast<int>(0.2*samplesPerStep_);
+    samples_ = 2*samplesPerStep_; //A reference of two steps is generated
+
     zmpXRef_.resize(samples_);
     zmpYRef_.resize(samples_);
 
@@ -81,14 +56,9 @@ void ZMP::updateWalkZMP()
         zmpYRef_.segment(samplesPerStep_,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.futureYPos);
     }
 
-    else if(contact_ == Contact::Right){
+    else if(contact_ == Contact::Right || contact_ == Contact::Left){
         zmpYRef_.segment(0,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.currentYPos);
         zmpYRef_.segment(samplesPerStep_,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.futureYPos);
     }   
-
-    else if(contact_ == Contact::Left){
-        zmpYRef_.segment(0,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.currentYPos);
-        zmpYRef_.segment(samplesPerStep_,samplesPerStep_) = Eigen::VectorXd::Constant(samplesPerStep_, gaitParameters_.futureYPos);
-    }
     
 }
