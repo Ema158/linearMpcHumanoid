@@ -18,4 +18,16 @@ struct GaitParameters{
     double stepWidth = 0.1;
     double timeInitialDS = 0.4;
 };
+
+struct JumpParameters{
+    double minHeight;
+    double maxHeight;
+    double maxVelz;
+    double maxVelx;
+    double maxPosX;
+    double desiredAngMomZ;
+    double thresholdHeight;
+    double timeInitialDS;
+
+};
     

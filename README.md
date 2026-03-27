@@ -3,16 +3,16 @@
 ⚠️ Work in progress
 
 This repository contains an experimental linear MPC / WBC framework
-for humanoid robots. The current offline simulator integrates the
-closed-loop system using RK4. MuJoCo integration is planned.
+for humanoid robots. The current offline simulator integrates a
+closed-loop system using the equations of motion and RK4.
+The mujoco controller integrates Mujoco simulator to act as feedback
+for the controller.
 
-This project has as objective the C++ implementation of a model based Whole-Body Controller on a floating-base humanoid robot using a linear MPC formulation and centroidal dynamics. Outputs of the controller are torques that are directly send to the robot. The results are validated in Webots in tasks such as balance, walking and jumping.
+This project has as objective the C++ implementation of a model based Whole-Body Controller on a floating-base humanoid robot using a linear MPC formulation and centroidal dynamics. Outputs of the controller are torques that are directly send to the robot. The results are validated in Mujoco in tasks such as balance, walking and jumping. Jumping is pending.
 
 The project aims to use the fewest possible number of libraries in order to deeply understand what is happening inside each component. The only component that is not fully developed here is the qp solver.
 
 The controller is divided in three parts: A generator of desired trajectories, the WBC that generates joint accelerations and reaction forces that tracks these trajectories such that constraints inherent to balance are fullfiled, and an inverse dynamics block that transforms these accelerations into torques that are send to the robot.
-
-This controller was first developed on MATLAB and the reference codes are included in the MATLAB folder.
 
 ## Desired trajectories generator 
 The key variables of the robot that we need to impose desired trajectories are: the position of the center of mass, the angular momentum around the center of mass, the position and orientation of the base of the robot (the torso of the robot), the position and orientation of each foot. 
