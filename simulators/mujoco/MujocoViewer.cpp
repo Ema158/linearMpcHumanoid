@@ -45,6 +45,8 @@ void MujocoViewer::initMujoco()
 
     mjr_defaultContext(&con_);
     mjr_makeContext(sim_.model(), &con_, mjFONTSCALE_150);
+
+    getchar();
 }
 
 void MujocoViewer::run(std::function<void()> control_cb, Clock& clock)

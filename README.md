@@ -35,5 +35,11 @@ Using the dynamic model of the floating base robot, joints accelerations and rea
 ## State estimation
 An state estimator is pending to implement. Current simulations use information given by the simulator (Webots) to feedback the state of the base of the robot at each time step.
 
+## Walking
+<img src="media/Walk.gif" width="500">
+
+## External Disturbance
+<img src="media/Stand.gif" width="500">
+
 
 

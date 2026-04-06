@@ -118,8 +118,8 @@ void MujocoSim::loadModel(const std::string& model_path, const Eigen::VectorXd& 
 // -----------------------------
 
 void MujocoSim::step() {
+  applyPerturbations();
   mj_step(m_, d_);
-  //std::getchar();
 }
 
 void MujocoSim::reset() {
@@ -255,6 +255,19 @@ Eigen::Vector3d MujocoSim::getCoM()
        d_->subtree_com[1],
        d_->subtree_com[2];
   return com;
+}
+
+void MujocoSim::applyPerturbations() 
+{
+  mju_zero(d_->xfrc_applied, 6 * m_->nbody);
+
+  if (d_->time > 0.3 && d_->time < 0.5) {
+    int body_id = mj_name2id(m_, mjOBJ_BODY, "base");
+    
+    d_->xfrc_applied[6*body_id + 0] = 0.0;  // Fx
+    d_->xfrc_applied[6*body_id + 1] = 0.0;
+    d_->xfrc_applied[6*body_id + 2] = 0.0;
+  }
 }
 
 

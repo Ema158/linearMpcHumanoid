@@ -78,6 +78,8 @@ public:
 
   Eigen::Vector3d getCoM();
 
+  void applyPerturbations();
+
 private:
   // ---- MuJoCo core ----
   mjModel* m_ = nullptr;
